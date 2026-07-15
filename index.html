@@ -124,9 +124,8 @@
     background: var(--panel); border-radius: 16px;
     padding: 30px 20px; text-align: center; margin-bottom: 20px;
   }
-  .q-line1 { font-size: 1.3rem; color: var(--sub); letter-spacing: .1em; }
-  .q-chord { font-size: 4.2rem; font-weight: 800; margin: 6px 0; color: var(--accent); }
-  .q-form { font-size: 1.6rem; font-weight: 700; margin-top: 4px; }
+  .q-line1 { font-size: 1.25rem; color: var(--sub); letter-spacing: .06em; }
+  .q-chord { font-size: 4.2rem; font-weight: 800; margin-top: 4px; color: var(--accent); }
 
   #countdown-area { text-align: center; padding: 10px 0 20px; }
   .ring-wrap { position: relative; width: 140px; height: 140px; margin: 0 auto; }
@@ -164,10 +163,9 @@
     h1 { font-size: 1.4rem; }
     #screen-title { padding-top: 6vh; }
     #screen-title .logo { font-size: 3rem; }
-    .q-line1 { font-size: 1rem; }
+    .q-line1 { font-size: .95rem; }
     .q-chord { font-size: 2.8rem; }
-    .q-form { font-size: 1.15rem; }
-    .q-card { padding: 20px 12px; }
+    .q-card { padding: 14px 12px; }
     .panel { padding: 14px 12px; }
     .filter-group { padding: 10px; }
     .chk-group label { padding: 6px 9px; font-size: .82rem; }
@@ -188,10 +186,9 @@
     #screen-title .menu { flex-direction: row; justify-content: center; }
     #screen-title .menu button { width: auto; min-width: 180px; }
     #game-header { margin-bottom: 8px; }
-    .q-card { padding: 10px 12px; margin-bottom: 10px; }
+    .q-card { padding: 8px 12px; margin-bottom: 10px; }
     .q-line1 { font-size: .9rem; }
-    .q-chord { font-size: 2rem; margin: 2px 0; }
-    .q-form { font-size: 1rem; margin-top: 0; }
+    .q-chord { font-size: 2rem; margin-top: 2px; }
     #countdown-area { padding: 4px 0 8px; }
     .ring-wrap { width: 88px; height: 88px; }
     #countdown-num { font-size: 1.8rem; }
@@ -319,9 +316,8 @@
     </div>
 
     <div class="q-card">
-      <div class="q-line1" id="q-string"></div>
+      <div class="q-line1" id="q-info"></div>
       <div class="q-chord" id="q-chord"></div>
-      <div class="q-form" id="q-form"></div>
     </div>
 
     <!-- 問題フェーズ: カウントダウン -->
@@ -1000,9 +996,8 @@ function nextQuestion() {
 
   const q = game.current;
   document.getElementById("game-qno").textContent = "第 " + game.qno + " 問";
-  document.getElementById("q-string").textContent = q.string + "弦ルート";
+  document.getElementById("q-info").textContent = q.string + "弦ルート / " + FORMS[q.form].name;
   document.getElementById("q-chord").textContent = chordName(q);
-  document.getElementById("q-form").textContent = FORMS[q.form].name;
 
   document.getElementById("countdown-area").style.display = "block";
   document.getElementById("answer-area").style.display = "none";

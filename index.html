@@ -150,6 +150,7 @@
 
   /* ---- game ---- */
   #game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  #game-header .icon-btn { width: 60px; height: 60px; } /* 進行ボタン(.next-btn)と同サイズ */
   #game-qno { color: var(--sub); }
   .q-card {
     background: var(--panel); border-radius: 16px;
@@ -236,7 +237,7 @@
     .icon-btn.timer { width: 50px; height: 50px; }
     #countdown-num, #next-countdown-num { font-size: 1.3rem; }
     .control-line { margin-top: 8px; min-height: 56px; }
-    .next-btn { width: 52px; height: 52px; }
+    .next-btn, #game-header .icon-btn { width: 52px; height: 52px; }
     #fretboard-wrap { padding: 8px 8px 8px; }
     #next-wrap { margin-top: 8px; }
   }
@@ -355,8 +356,8 @@
   <div id="screen-game" class="screen">
     <div id="game-header">
       <span id="game-qno">第 1 問</span>
-      <button class="icon-btn primary sm" onclick="endGame()" aria-label="終了" title="終了">
-        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      <button class="icon-btn primary" onclick="endGame()" aria-label="終了" title="終了">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
       </button>
     </div>
 

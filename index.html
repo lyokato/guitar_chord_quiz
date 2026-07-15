@@ -44,15 +44,36 @@
   button:hover { filter: brightness(1.2); }
   button:active { transform: scale(.97); }
   button.primary { background: var(--accent); color: #0b0e12; font-weight: 700; }
-  button.big { font-size: 1.25rem; padding: 16px 40px; }
+  button.big { font-size: 1.25rem; padding: 16px 40px; letter-spacing: .08em; }
   button.ghost { background: transparent; border: 1px solid var(--line); }
   button.small { font-size: .85rem; padding: 6px 12px; border-radius: 8px; }
 
+  /* アイコンボタン: 役割ごとに3種
+     primary   = 画面進行 (答えを見る / 次へ)
+     secondary = 補助操作 (音を鳴らす)
+     timer     = タイマー操作 (一時停止 / 再開) — リングと同じアクセント色で揃える */
+  .icon-btn {
+    width: 56px; height: 56px; border-radius: 50%; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex: 0 0 auto;
+  }
+  .icon-btn svg { display: block; }
+  .icon-btn.primary { background: var(--accent); color: #0b0e12; }
+  .icon-btn.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
+  .icon-btn.timer {
+    width: 46px; height: 46px;
+    background: transparent; color: var(--accent); border: 2px solid var(--accent);
+  }
+  .icon-btn.timer:disabled {
+    color: var(--line); border-color: var(--line);
+    cursor: default; filter: none; transform: none;
+  }
+  .timer-row { display: flex; align-items: center; justify-content: center; gap: 20px; }
+
   /* ---- title ---- */
-  #screen-title { text-align: center; padding-top: 10vh; }
+  #screen-title { text-align: center; padding-top: 12vh; }
   #screen-title .logo { font-size: 4rem; margin-bottom: 8px; }
-  #screen-title p.desc { color: var(--sub); margin: 16px 0 40px; line-height: 1.8; }
-  #screen-title .menu { display: flex; flex-direction: column; gap: 16px; align-items: center; }
+  #screen-title .menu { display: flex; flex-direction: column; gap: 16px; align-items: center; margin-top: 48px; }
   #screen-title .menu button { width: 260px; }
 
   /* ---- settings ---- */
@@ -184,7 +205,6 @@
     .ring-wrap { width: 110px; height: 110px; }
     #countdown-num { font-size: 2.4rem; }
     button.big { width: 100%; max-width: 320px; }
-    .phase-actions button { flex: 1 1 auto; }
   }
 
   /* ---- スマホ横持ち (高さが低い画面) ---- */
@@ -192,8 +212,7 @@
     .app { padding: 10px 16px 24px; }
     #screen-title { padding-top: 2vh; }
     #screen-title .logo { font-size: 2rem; margin-bottom: 0; }
-    #screen-title p.desc { margin: 8px 0 16px; }
-    #screen-title .menu { flex-direction: row; justify-content: center; }
+    #screen-title .menu { flex-direction: row; justify-content: center; margin-top: 24px; }
     #screen-title .menu button { width: auto; min-width: 180px; }
     #game-header { margin-bottom: 8px; }
     .q-card { padding: 8px 12px; margin-bottom: 10px; }
@@ -217,13 +236,9 @@
   <div id="screen-title" class="screen active">
     <div class="logo">🎸</div>
     <h1>コード・ポジションクイズ</h1>
-    <p class="desc">
-      表示されたコード情報から指板上のポジションを思い浮かべよう。<br>
-      数秒後に答えが指板グラフィックで表示されます。
-    </p>
     <div class="menu">
-      <button class="primary big" onclick="startGame()">ゲーム開始</button>
-      <button class="big ghost" onclick="showScreen('settings')">設定</button>
+      <button class="primary big" onclick="startGame()">START</button>
+      <button class="big ghost" onclick="showScreen('settings')">SETTINGS</button>
     </div>
   </div>
 
@@ -344,7 +359,9 @@
         <div id="countdown-num">5</div>
       </div>
       <div class="phase-actions">
-        <button class="ghost" onclick="revealAnswer()">答えを見る ≫</button>
+        <button class="icon-btn primary" onclick="revealAnswer()" aria-label="答えを見る" title="答えを見る">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
       </div>
     </div>
 
@@ -358,18 +375,29 @@
         </div>
       </div>
       <div class="phase-actions">
-        <button class="primary" onclick="playCurrent()">♪ 音を鳴らす</button>
-        <button id="pause-btn" onclick="togglePause()">⏸ 一時停止</button>
-        <button onclick="nextQuestion()">次へ ≫</button>
+        <button class="icon-btn secondary" onclick="playCurrent()" aria-label="音を鳴らす" title="音を鳴らす">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M9 17.5V6l9-2.2v10.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><ellipse cx="6.6" cy="17.6" rx="2.7" ry="2.3" fill="currentColor"/><ellipse cx="15.6" cy="14.8" rx="2.7" ry="2.3" fill="currentColor"/></svg>
+        </button>
+        <button class="icon-btn primary" onclick="nextQuestion()" aria-label="次へ" title="次へ">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
       </div>
       <div id="next-wrap">
-        <div class="ring-wrap small-ring">
-          <svg width="90" height="90" viewBox="0 0 90 90">
-            <circle class="ring-bg" cx="45" cy="45" r="38" fill="none" stroke-width="7"/>
-            <circle class="ring-fg" id="next-ring-fg" cx="45" cy="45" r="38" fill="none" stroke-width="7"
-                    stroke-linecap="round" stroke-dasharray="238.76" stroke-dashoffset="0"/>
-          </svg>
-          <div id="next-countdown-num">5</div>
+        <div class="timer-row">
+          <button id="btn-pause" class="icon-btn timer" onclick="pauseTimer()" aria-label="一時停止" title="一時停止">
+            <svg viewBox="0 0 24 24" width="20" height="20"><rect x="6" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/></svg>
+          </button>
+          <div class="ring-wrap small-ring">
+            <svg width="90" height="90" viewBox="0 0 90 90">
+              <circle class="ring-bg" cx="45" cy="45" r="38" fill="none" stroke-width="7"/>
+              <circle class="ring-fg" id="next-ring-fg" cx="45" cy="45" r="38" fill="none" stroke-width="7"
+                      stroke-linecap="round" stroke-dasharray="238.76" stroke-dashoffset="0"/>
+            </svg>
+            <div id="next-countdown-num">5</div>
+          </div>
+          <button id="btn-resume" class="icon-btn timer" onclick="resumeTimer()" aria-label="再開" title="再開">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M8.5 5.2v13.6L19.5 12z" fill="currentColor"/></svg>
+          </button>
         </div>
       </div>
     </div>
@@ -739,7 +767,7 @@ function playPreview() {
 
 const FB = {
   frets: 16, // 1フレットルートの13フレット移動 (最大16フレット使用) に対応
-  left: 56, right: 20, top: 34, bottom: 34,
+  left: 36, right: 20, top: 34, bottom: 34,
   stringGap: 30
 };
 
@@ -796,10 +824,6 @@ function renderFretboard(container, q) {
       x1: nutX - 4, y1: yOf(s), x2: nutX + innerW, y2: yOf(s),
       stroke: "#b8beC6", "stroke-width": 0.8 + s * 0.45
     });
-    el("text", {
-      x: nutX - 36, y: yOf(s) + 5, fill: "var(--sub)",
-      "font-size": 14, "text-anchor": "middle"
-    }, s + "弦");
   }
 
   // フレット番号 — 位置認知のためやや強調 (ただしポジションマークより控えめ)
@@ -1066,16 +1090,13 @@ function revealAnswer() {
   centerOnRoot(board, game.current);
 
   const nextWrap = document.getElementById("next-wrap");
-  const pauseBtn = document.getElementById("pause-btn");
   cd.paused = false;
-  pauseBtn.textContent = "⏸ 一時停止";
   if (settings.autoNext) {
     nextWrap.style.display = "block";
-    pauseBtn.style.display = "";
     runCountdown(settings.answerSec, "next-ring-fg", "next-countdown-num", 238.76, nextQuestion);
+    updateTimerButtons();
   } else {
     nextWrap.style.display = "none";
-    pauseBtn.style.display = "none";
   }
 }
 
@@ -1115,19 +1136,25 @@ function startCdTicker() {
   }, 100);
 }
 
-function togglePause() {
-  const btn = document.getElementById("pause-btn");
-  if (!settings.autoNext) return; // 手動送り時はタイマー無し
-  if (cd.paused) {
-    cd.paused = false;
-    btn.textContent = "⏸ 一時停止";
-    startCdTicker();
-  } else {
-    if (!game.timer) return;
-    clearGameTimer();
-    cd.paused = true;
-    btn.textContent = "▶ 再開";
-  }
+function pauseTimer() {
+  if (!game.timer || cd.paused) return;
+  clearGameTimer();
+  cd.paused = true;
+  updateTimerButtons();
+}
+
+function resumeTimer() {
+  if (!cd.paused) return;
+  cd.paused = false;
+  startCdTicker();
+  updateTimerButtons();
+}
+
+function updateTimerButtons() {
+  const p = document.getElementById("btn-pause");
+  const r = document.getElementById("btn-resume");
+  p.disabled = cd.paused;
+  r.disabled = !cd.paused;
 }
 
 /* ================= 初期化 ================= */

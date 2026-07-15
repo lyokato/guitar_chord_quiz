@@ -56,6 +56,16 @@
   #screen-title .menu button { width: 260px; }
 
   /* ---- settings ---- */
+  .navbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg); padding: 10px 0; margin-bottom: 10px;
+  }
+  .nav-back {
+    font-size: 1.7rem; line-height: 1.1; padding: 2px 16px 6px;
+    border-radius: 10px; background: var(--panel2);
+  }
+  .nav-title { font-size: 1.3rem; font-weight: 700; letter-spacing: .05em; }
   .panel { background: var(--panel); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
   .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 8px 0; }
   .row label { color: var(--text); }
@@ -219,7 +229,10 @@
 
   <!-- ==== 設定 ==== -->
   <div id="screen-settings" class="screen">
-    <h1 style="margin-bottom:20px;">設定</h1>
+    <div class="navbar">
+      <button class="nav-back" onclick="navBack()" aria-label="戻る">‹</button>
+      <span class="nav-title">設定</span>
+    </div>
 
     <div class="panel">
       <h2>タイマー</h2>
@@ -304,7 +317,7 @@
     </div>
 
     <div style="text-align:center; margin-top: 8px;">
-      <button class="big" onclick="showScreen('title')">タイトルへ戻る</button>
+      <button class="big" onclick="navBack()">タイトルへ戻る</button>
     </div>
   </div>
 
@@ -951,10 +964,45 @@ const game = {
   timer: null
 };
 
-function showScreen(name) {
+/* ---- SPA風ルーティング: ブラウザバックでページを離れず画面遷移 ---- */
+
+let appNavDepth = 0;
+
+function switchDom(name) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById("screen-" + name).classList.add("active");
+  window.scrollTo(0, 0);
 }
+
+function showScreen(name) {
+  switchDom(name);
+  appNavDepth++;
+  history.pushState({ screen: name, depth: appNavDepth }, "", "#" + name);
+}
+
+// 戻るボタン: 履歴があればブラウザバック相当、なければタイトルへ
+function navBack() {
+  if (appNavDepth > 0) history.back();
+  else showScreen("title");
+}
+
+window.addEventListener("popstate", (e) => {
+  appNavDepth = (e.state && typeof e.state.depth === "number") ? e.state.depth : 0;
+  let name = (e.state && e.state.screen) || "title";
+  if (!document.getElementById("screen-" + name)) name = "title";
+  clearGameTimer();
+  if (name === "game") {
+    // 戻る/進むでゲーム画面に来た場合は新しい問題から再開
+    if (game.pool.length > 0) {
+      switchDom("game");
+      nextQuestion();
+    } else {
+      switchDom("title");
+    }
+    return;
+  }
+  switchDom(name);
+});
 
 function startGame() {
   const pool = buildPool();
@@ -971,7 +1019,7 @@ function startGame() {
 
 function endGame() {
   clearGameTimer();
-  showScreen("title");
+  navBack();
 }
 
 function clearGameTimer() {
@@ -1086,6 +1134,10 @@ function togglePause() {
 
 loadSettings();
 buildSettingsUI();
+
+// 初期履歴エントリ (リロード時のハッシュに関わらずタイトルから開始)
+history.replaceState({ screen: "title", depth: 0 }, "", "#title");
+switchDom("title");
 
 for (const id of ["game-board", "preview-board"]) {
   const b = document.getElementById(id);

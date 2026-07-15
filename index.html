@@ -60,6 +60,7 @@
   }
   .icon-btn svg { display: block; }
   .icon-btn.primary { background: var(--accent); color: #0b0e12; }
+  .icon-btn.sm { width: 44px; height: 44px; }
   .icon-btn.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
   .icon-btn.timer {
     width: 64px; height: 64px; /* カウンタ(72px)よりわずかに小さく */
@@ -85,11 +86,7 @@
     display: flex; align-items: center; gap: 10px;
     background: var(--bg); padding: 10px 0; margin-bottom: 10px;
   }
-  .nav-back {
-    font-size: 1.7rem; line-height: 1.1; padding: 2px 16px 6px;
-    border-radius: 10px; background: var(--panel2);
-  }
-  .nav-title { font-size: 1.3rem; font-weight: 700; letter-spacing: .05em; }
+  .nav-title { font-size: 1.3rem; font-weight: 700; letter-spacing: .08em; }
   .panel { background: var(--panel); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
   .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 8px 0; }
   .row label { color: var(--text); }
@@ -261,8 +258,10 @@
   <!-- ==== 設定 ==== -->
   <div id="screen-settings" class="screen">
     <div class="navbar">
-      <button class="nav-back" onclick="navBack()" aria-label="戻る">‹</button>
-      <span class="nav-title">設定</span>
+      <button class="icon-btn primary sm" onclick="navBack()" aria-label="戻る" title="戻る">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="nav-title">SETTINGS</span>
     </div>
 
     <div class="panel">
@@ -356,7 +355,9 @@
   <div id="screen-game" class="screen">
     <div id="game-header">
       <span id="game-qno">第 1 問</span>
-      <button class="small ghost" onclick="endGame()">終了</button>
+      <button class="icon-btn primary sm" onclick="endGame()" aria-label="終了" title="終了">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </button>
     </div>
 
     <div class="q-card">

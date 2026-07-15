@@ -159,7 +159,7 @@
     background: var(--panel); border-radius: 16px;
     padding: 30px 20px; text-align: center; margin-bottom: 20px;
   }
-  .q-line1 { font-size: 1.25rem; color: var(--sub); letter-spacing: .06em; }
+  .q-line1 { font-size: 1.25rem; color: #fff; letter-spacing: .06em; }
   .q-chord { font-size: 4.2rem; font-weight: 800; margin-top: 4px; color: var(--accent); }
 
   #countdown-area { text-align: center; padding: 10px 0 20px; }
@@ -358,7 +358,7 @@
   <!-- ==== ゲーム ==== -->
   <div id="screen-game" class="screen">
     <div id="game-header">
-      <span id="game-qno">第 1 問</span>
+      <span id="game-qno">No. 1</span>
       <button class="icon-btn nav" onclick="endGame()" aria-label="終了" title="終了">
         <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
       </button>
@@ -1089,7 +1089,7 @@ function nextQuestion() {
   game.qno++;
 
   const q = game.current;
-  document.getElementById("game-qno").textContent = "第 " + game.qno + " 問";
+  document.getElementById("game-qno").textContent = "No. " + game.qno;
   document.getElementById("q-info").textContent = q.string + "弦ルート / " + FORMS[q.form].name;
   document.getElementById("q-chord").textContent = chordName(q);
 

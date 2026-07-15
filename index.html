@@ -11,7 +11,8 @@
     --panel2: #262c36;
     --text: #e8ecf1;
     --sub: #9aa5b1;
-    --accent: #4fc3f7;
+    --accent: #4fc3f7;   /* キーカラー: 画面進行・強調 */
+    --timer: #ffb74d;    /* タイマー系: カウンタリング・一時停止/再開 */
     --root: #ef5350;
     --tone: #26a69a;
     --line: #3a424e;
@@ -61,8 +62,8 @@
   .icon-btn.primary { background: var(--accent); color: #0b0e12; }
   .icon-btn.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
   .icon-btn.timer {
-    width: 46px; height: 46px;
-    background: transparent; color: var(--accent); border: 2px solid var(--accent);
+    width: 64px; height: 64px;
+    background: transparent; color: var(--timer); border: 2px solid var(--timer);
   }
   .icon-btn.timer:disabled {
     color: var(--line); border-color: var(--line);
@@ -162,7 +163,7 @@
   .ring-wrap { position: relative; width: 140px; height: 140px; margin: 0 auto; }
   .ring-wrap svg { transform: rotate(-90deg); width: 100%; height: 100%; }
   .ring-bg { stroke: var(--panel2); }
-  .ring-fg { stroke: var(--accent); transition: stroke-dashoffset .1s linear; }
+  .ring-fg { stroke: var(--timer); transition: stroke-dashoffset .1s linear; }
   #countdown-num, #next-countdown-num {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     font-size: 3rem; font-weight: 800;
@@ -175,6 +176,7 @@
   .float-play {
     position: absolute; top: 10px; right: 10px; z-index: 5;
     width: 48px; height: 48px;
+    background: var(--tone); color: #fff; border: none;
     box-shadow: 0 3px 10px rgba(0, 0, 0, .45);
   }
   .board-outer { position: relative; }
@@ -191,8 +193,10 @@
   .edge-fade.visible { opacity: 1; }
 
   #next-wrap { text-align: center; margin-top: 16px; }
-  .small-ring { width: 90px; height: 90px; }
-  .small-ring #next-countdown-num { font-size: 2rem; }
+  /* 一時停止・カウンタ・再開: 同色・同サイズで隣接させ、ひとつの機能群として見せる */
+  .small-ring { width: 64px; height: 64px; }
+  .small-ring #next-countdown-num { font-size: 1.5rem; }
+  .timer-row { gap: 14px; }
 
   /* ---- スマホ縦持ち ---- */
   @media (max-width: 600px) {
@@ -227,8 +231,8 @@
     #countdown-area { padding: 4px 0 8px; }
     .ring-wrap { width: 88px; height: 88px; }
     #countdown-num { font-size: 1.8rem; }
-    .small-ring { width: 64px; height: 64px; }
-    .small-ring #next-countdown-num { font-size: 1.4rem; }
+    .small-ring, .icon-btn.timer { width: 52px; height: 52px; }
+    .small-ring #next-countdown-num { font-size: 1.2rem; }
     .phase-actions { margin-top: 8px; }
     #fretboard-wrap { padding: 8px 8px 8px; }
     #next-wrap { margin-top: 8px; }

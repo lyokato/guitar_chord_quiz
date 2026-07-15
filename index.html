@@ -272,14 +272,14 @@
       <h2>タイマー</h2>
       <div class="row">
         <label>問題 → 答え:</label>
-        <input type="number" id="set-question-sec" min="1" max="60" value="10"> 秒
+        <input type="number" id="set-question-sec" min="1" max="60" value="10" inputmode="numeric" pattern="[0-9]*"> 秒
       </div>
       <div class="row">
         <label><input type="checkbox" id="set-auto-next" checked> 答えの後、自動で次の問題へ進む</label>
       </div>
       <div class="row" id="row-answer-sec">
         <label>答え → 次の問題:</label>
-        <input type="number" id="set-answer-sec" min="1" max="60" value="10"> 秒
+        <input type="number" id="set-answer-sec" min="1" max="60" value="10" inputmode="numeric" pattern="[0-9]*"> 秒
       </div>
       <p class="note">自動送りをオフにすると、答え画面に「次へ」ボタンが表示されます。</p>
     </div>

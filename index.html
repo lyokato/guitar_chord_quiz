@@ -272,7 +272,7 @@
       <h2>タイマー</h2>
       <div class="row">
         <label>問題 → 答え:</label>
-        <input type="number" id="set-question-sec" min="1" max="60" value="5"> 秒
+        <input type="number" id="set-question-sec" min="1" max="60" value="10"> 秒
       </div>
       <div class="row">
         <label><input type="checkbox" id="set-auto-next" checked> 答えの後、自動で次の問題へ進む</label>
@@ -572,7 +572,7 @@ function questionLabel(q) {
 /* ================= 設定 ================= */
 
 const settings = {
-  questionSec: 5,
+  questionSec: 10,
   autoNext: true,
   answerSec: 10,
   strings: { 6: true, 5: true },
@@ -678,7 +678,7 @@ function buildSettingsUI() {
   aSec.disabled = !settings.autoNext;
 
   qSec.addEventListener("change", () => {
-    settings.questionSec = clampInt(qSec.value, 1, 60, 5);
+    settings.questionSec = clampInt(qSec.value, 1, 60, 10);
     qSec.value = settings.questionSec;
     saveSettings();
   });

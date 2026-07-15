@@ -140,16 +140,19 @@
   .phase-actions { display: flex; justify-content: center; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
 
   #answer-area { display: none; }
-  #fretboard-wrap { background: var(--panel); border-radius: 16px; padding: 16px 10px 6px; }
-  #game-board, #preview-board { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  #game-board svg, #preview-board svg { width: 100%; min-width: 640px; height: auto; display: block; }
-  .legend { display: flex; justify-content: center; gap: 24px; padding: 10px 0 12px; color: var(--sub); font-size: .85rem; flex-wrap: wrap; }
-  .legend span { display: flex; align-items: center; gap: 6px; }
-  .dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
-  .dot.root { background: var(--root); }
-  .dot.tone { background: var(--tone); }
-  .dot.ref { border: 2px dashed var(--root); }
-  .bar-mark { width: 9px; height: 18px; border-radius: 5px; display: inline-block; background: rgba(224,172,105,.55); }
+  #fretboard-wrap { background: var(--panel); border-radius: 16px; padding: 16px 10px 12px; }
+  .board-outer { position: relative; }
+  .board-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .board-scroll svg { width: 100%; min-width: 640px; height: auto; display: block; }
+  /* トリムされていることを示す両端のフェード */
+  .edge-fade {
+    position: absolute; top: 0; bottom: 0; width: 34px;
+    pointer-events: none; opacity: 0; transition: opacity .25s;
+    display: flex; align-items: center; color: #aeb8c4; font-size: 22px;
+  }
+  .edge-fade.left  { left: 0;  background: linear-gradient(to right, rgba(20,23,28,.95), rgba(20,23,28,0)); justify-content: flex-start; }
+  .edge-fade.right { right: 0; background: linear-gradient(to left,  rgba(20,23,28,.95), rgba(20,23,28,0)); justify-content: flex-end; }
+  .edge-fade.visible { opacity: 1; }
 
   #next-wrap { text-align: center; margin-top: 16px; }
   .small-ring { width: 90px; height: 90px; }
@@ -172,7 +175,6 @@
     .group-head { flex-wrap: wrap; }
     .ring-wrap { width: 110px; height: 110px; }
     #countdown-num { font-size: 2.4rem; }
-    .legend { gap: 10px 16px; font-size: .75rem; }
     button.big { width: 100%; max-width: 320px; }
     .phase-actions button { flex: 1 1 auto; }
   }
@@ -196,8 +198,7 @@
     .small-ring { width: 64px; height: 64px; }
     .small-ring #next-countdown-num { font-size: 1.4rem; }
     .phase-actions { margin-top: 8px; }
-    #fretboard-wrap { padding: 8px 8px 2px; }
-    .legend { padding: 6px 0 8px; font-size: .72rem; gap: 8px 14px; }
+    #fretboard-wrap { padding: 8px 8px 8px; }
     #next-wrap { margin-top: 8px; }
   }
 </style>
@@ -293,7 +294,11 @@
       <div id="question-list"></div>
       <div id="preview-box">
         <div id="preview-title"></div>
-        <div id="preview-board"></div>
+        <div class="board-outer">
+          <div id="preview-board" class="board-scroll"></div>
+          <div class="edge-fade left"><span>‹</span></div>
+          <div class="edge-fade right"><span>›</span></div>
+        </div>
         <div class="toolbar">
           <button class="small primary" onclick="playPreview()">♪ 音を鳴らす</button>
           <button class="small" onclick="closePreview()">閉じる</button>
@@ -337,12 +342,10 @@
     <!-- 答えフェーズ -->
     <div id="answer-area">
       <div id="fretboard-wrap">
-        <div id="game-board"></div>
-        <div class="legend">
-          <span><span class="dot root"></span>ルート音</span>
-          <span><span class="dot tone"></span>構成音</span>
-          <span><span class="dot ref"></span>ルート基準位置(弾かない)</span>
-          <span><span class="bar-mark"></span>人差し指バレー</span>
+        <div class="board-outer">
+          <div id="game-board" class="board-scroll"></div>
+          <div class="edge-fade left"><span>‹</span></div>
+          <div class="edge-fade right"><span>›</span></div>
         </div>
       </div>
       <div class="phase-actions">
@@ -707,7 +710,9 @@ function openPreview(q) {
   previewQuestion = q;
   document.getElementById("preview-box").classList.add("open");
   document.getElementById("preview-title").textContent = questionLabel(q);
-  renderFretboard(document.getElementById("preview-board"), q);
+  const board = document.getElementById("preview-board");
+  renderFretboard(board, q);
+  centerOnRoot(board, q);
   document.getElementById("preview-box").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 function closePreview() {
@@ -764,13 +769,14 @@ function renderFretboard(container, q) {
     });
   }
 
-  // ポジションマーク (インレイ)
+  // ポジションマーク (インレイ) — 位置認知のためやや明るめに (ただしポジションマークより控えめ)
+  const inlayFill = "#6e6350";
   const midY = (yOf(3) + yOf(4)) / 2;
   for (const f of [3, 5, 7, 9, 15]) {
-    el("circle", { cx: fretCenterX(f), cy: midY, r: 6, fill: "#4a4238" });
+    el("circle", { cx: fretCenterX(f), cy: midY, r: 6.5, fill: inlayFill });
   }
-  el("circle", { cx: fretCenterX(12), cy: yOf(2), r: 6, fill: "#4a4238" });
-  el("circle", { cx: fretCenterX(12), cy: yOf(5), r: 6, fill: "#4a4238" });
+  el("circle", { cx: fretCenterX(12), cy: yOf(2), r: 6.5, fill: inlayFill });
+  el("circle", { cx: fretCenterX(12), cy: yOf(5), r: 6.5, fill: inlayFill });
 
   // 弦
   for (let s = 1; s <= 6; s++) {
@@ -784,11 +790,11 @@ function renderFretboard(container, q) {
     }, s + "弦");
   }
 
-  // フレット番号
+  // フレット番号 — 位置認知のためやや強調 (ただしポジションマークより控えめ)
   for (const f of [1, 3, 5, 7, 9, 12, 15]) {
     el("text", {
-      x: fretCenterX(f), y: yOf(6) + 28, fill: "var(--sub)",
-      "font-size": 14, "text-anchor": "middle"
+      x: fretCenterX(f), y: yOf(6) + 28, fill: "#c2cad4",
+      "font-size": 15.5, "font-weight": 600, "text-anchor": "middle"
     }, f);
   }
 
@@ -833,6 +839,36 @@ function renderFretboard(container, q) {
 
   container.innerHTML = "";
   container.appendChild(svg);
+}
+
+/* ---- 横スクロール補助: ルート音を中央へ / トリム表示 ---- */
+
+function updateEdgeFades(board) {
+  const outer = board.closest(".board-outer");
+  if (!outer) return;
+  const left = outer.querySelector(".edge-fade.left");
+  const right = outer.querySelector(".edge-fade.right");
+  const maxScroll = board.scrollWidth - board.clientWidth;
+  const scrollable = maxScroll > 4;
+  left.classList.toggle("visible", scrollable && board.scrollLeft > 4);
+  right.classList.toggle("visible", scrollable && board.scrollLeft < maxScroll - 4);
+}
+
+// 表示領域が足りない場合、ルート音ができるだけ中央に来るようスクロール位置を調整
+function centerOnRoot(board, q) {
+  requestAnimationFrame(() => {
+    const svg = board.querySelector("svg");
+    if (svg && board.scrollWidth > board.clientWidth + 4) {
+      const width = 960;
+      const innerW = width - FB.left - FB.right;
+      const fw = innerW / FB.frets;
+      const R = rootFret(q.root, q.string);
+      const rootX = FB.left + (R - 0.5) * fw; // viewBox座標でのルート位置
+      const scale = board.scrollWidth / width;
+      board.scrollLeft = rootX * scale - board.clientWidth / 2;
+    }
+    updateEdgeFades(board);
+  });
 }
 
 /* ================= サウンド ================= */
@@ -958,7 +994,9 @@ function revealAnswer() {
   document.getElementById("countdown-area").style.display = "none";
   document.getElementById("answer-area").style.display = "block";
 
-  renderFretboard(document.getElementById("game-board"), game.current);
+  const board = document.getElementById("game-board");
+  renderFretboard(board, game.current);
+  centerOnRoot(board, game.current);
 
   const nextWrap = document.getElementById("next-wrap");
   const pauseBtn = document.getElementById("pause-btn");
@@ -1029,6 +1067,14 @@ function togglePause() {
 
 loadSettings();
 buildSettingsUI();
+
+for (const id of ["game-board", "preview-board"]) {
+  const b = document.getElementById(id);
+  b.addEventListener("scroll", () => updateEdgeFades(b), { passive: true });
+}
+window.addEventListener("resize", () => {
+  for (const id of ["game-board", "preview-board"]) updateEdgeFades(document.getElementById(id));
+});
 </script>
 </body>
 </html>

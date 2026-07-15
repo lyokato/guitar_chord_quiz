@@ -874,9 +874,30 @@ function centerOnRoot(board, q) {
 /* ================= サウンド ================= */
 
 let audioCtx = null;
-function getAudioCtx() {
+let silentEl = null;
+
+// iOS Safari対策:
+// 1) AudioContextはユーザー操作内で resume する必要がある
+// 2) マナー(消音)スイッチON時、Web Audioは消音される。無音の<audio>を再生して
+//    オーディオセッションを再生カテゴリに切り替えると鳴るようになる (unmuteハック)
+function unlockIosAudio() {
+  if (!silentEl) {
+    silentEl = document.createElement("audio");
+    silentEl.setAttribute("playsinline", "");
+    silentEl.preload = "auto";
+    // ごく短い無音WAV
+    silentEl.src = "data:audio/wav;base64,UklGRuwAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YcgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==";
+  }
+  const p = silentEl.play();
+  if (p && p.catch) p.catch(() => {});
+}
+
+async function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === "suspended") audioCtx.resume();
+  unlockIosAudio();
+  if (audioCtx.state !== "running") {
+    try { await audioCtx.resume(); } catch (e) {}
+  }
   return audioCtx;
 }
 
@@ -912,8 +933,8 @@ function pluck(ctx, midi, t, gain, dur) {
   osc1.stop(t + dur + 0.1); osc2.stop(t + dur + 0.1);
 }
 
-function playChord(q) {
-  const ctx = getAudioCtx();
+async function playChord(q) {
+  const ctx = await getAudioCtx();
   const { positions, refPos } = computeVoicing(q);
   const t0 = ctx.currentTime + 0.05;
   if (refPos) pluck(ctx, refPos.midi, t0, 0.10, 2.2); // 基準ルートは控えめに

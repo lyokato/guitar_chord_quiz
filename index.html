@@ -62,14 +62,16 @@
   .icon-btn.primary { background: var(--accent); color: #0b0e12; }
   .icon-btn.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
   .icon-btn.timer {
-    width: 64px; height: 64px;
+    width: 72px; height: 72px;
     background: transparent; color: var(--timer); border: 2px solid var(--timer);
   }
   .icon-btn.timer:disabled {
     color: var(--line); border-color: var(--line);
     cursor: default; filter: none; transform: none;
   }
-  .timer-row { display: flex; align-items: center; justify-content: center; gap: 20px; }
+  /* カウンタ・一時停止・再開をひとかたまりに隣接配置 */
+  .timer-row { display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .timer-row .ring-wrap { margin: 0; }
 
   /* ---- title ---- */
   #screen-title { text-align: center; padding-top: 12vh; }
@@ -160,13 +162,14 @@
   .q-chord { font-size: 4.2rem; font-weight: 800; margin-top: 4px; color: var(--accent); }
 
   #countdown-area { text-align: center; padding: 10px 0 20px; }
-  .ring-wrap { position: relative; width: 140px; height: 140px; margin: 0 auto; }
+  /* カウンタは問題画面・回答画面で同一サイズ */
+  .ring-wrap { position: relative; width: 72px; height: 72px; margin: 0 auto; }
   .ring-wrap svg { transform: rotate(-90deg); width: 100%; height: 100%; }
   .ring-bg { stroke: var(--panel2); }
   .ring-fg { stroke: var(--timer); transition: stroke-dashoffset .1s linear; }
   #countdown-num, #next-countdown-num {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    font-size: 3rem; font-weight: 800;
+    font-size: 1.7rem; font-weight: 800;
   }
   .phase-actions { display: flex; justify-content: center; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
 
@@ -193,10 +196,6 @@
   .edge-fade.visible { opacity: 1; }
 
   #next-wrap { text-align: center; margin-top: 16px; }
-  /* 一時停止・カウンタ・再開: 同色・同サイズで隣接させ、ひとつの機能群として見せる */
-  .small-ring { width: 64px; height: 64px; }
-  .small-ring #next-countdown-num { font-size: 1.5rem; }
-  .timer-row { gap: 14px; }
 
   /* ---- スマホ縦持ち ---- */
   @media (max-width: 600px) {
@@ -212,8 +211,6 @@
     .chk-group label { padding: 6px 9px; font-size: .82rem; }
     .roots-grid { grid-template-columns: repeat(4, 1fr); }
     .group-head { flex-wrap: wrap; }
-    .ring-wrap { width: 110px; height: 110px; }
-    #countdown-num { font-size: 2.4rem; }
     button.big { width: 100%; max-width: 320px; }
   }
 
@@ -229,10 +226,8 @@
     .q-line1 { font-size: .9rem; }
     .q-chord { font-size: 2rem; margin-top: 2px; }
     #countdown-area { padding: 4px 0 8px; }
-    .ring-wrap { width: 88px; height: 88px; }
-    #countdown-num { font-size: 1.8rem; }
-    .small-ring, .icon-btn.timer { width: 52px; height: 52px; }
-    .small-ring #next-countdown-num { font-size: 1.2rem; }
+    .ring-wrap, .icon-btn.timer { width: 56px; height: 56px; }
+    #countdown-num, #next-countdown-num { font-size: 1.3rem; }
     .phase-actions { margin-top: 8px; }
     #fretboard-wrap { padding: 8px 8px 8px; }
     #next-wrap { margin-top: 8px; }
@@ -394,10 +389,7 @@
       </div>
       <div id="next-wrap">
         <div class="timer-row">
-          <button id="btn-pause" class="icon-btn timer" onclick="pauseTimer()" aria-label="一時停止" title="一時停止">
-            <svg viewBox="0 0 24 24" width="20" height="20"><rect x="6" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/></svg>
-          </button>
-          <div class="ring-wrap small-ring">
+          <div class="ring-wrap">
             <svg width="90" height="90" viewBox="0 0 90 90">
               <circle class="ring-bg" cx="45" cy="45" r="38" fill="none" stroke-width="7"/>
               <circle class="ring-fg" id="next-ring-fg" cx="45" cy="45" r="38" fill="none" stroke-width="7"
@@ -405,8 +397,11 @@
             </svg>
             <div id="next-countdown-num">5</div>
           </div>
+          <button id="btn-pause" class="icon-btn timer" onclick="pauseTimer()" aria-label="一時停止" title="一時停止">
+            <svg viewBox="0 0 24 24" width="22" height="22"><rect x="6" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/></svg>
+          </button>
           <button id="btn-resume" class="icon-btn timer" onclick="resumeTimer()" aria-label="再開" title="再開">
-            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M8.5 5.2v13.6L19.5 12z" fill="currentColor"/></svg>
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8.5 5.2v13.6L19.5 12z" fill="currentColor"/></svg>
           </button>
         </div>
       </div>

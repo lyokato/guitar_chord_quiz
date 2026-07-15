@@ -62,7 +62,7 @@
   .icon-btn.primary { background: var(--accent); color: #0b0e12; }
   .icon-btn.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
   .icon-btn.timer {
-    width: 72px; height: 72px;
+    width: 64px; height: 64px; /* カウンタ(72px)よりわずかに小さく */
     background: transparent; color: var(--timer); border: 2px solid var(--timer);
   }
   .icon-btn.timer:disabled {
@@ -171,17 +171,22 @@
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     font-size: 1.7rem; font-weight: 800;
   }
-  .phase-actions { display: flex; justify-content: center; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
-
   #answer-area { display: none; }
   #fretboard-wrap { background: var(--panel); border-radius: 16px; padding: 16px 10px 12px; position: relative; }
   /* 音を鳴らすボタン: 音は指板上のポジションに対応するため、指板ブロック右上にフローティング配置 */
-  .float-play {
+  .icon-btn.secondary.float-play {
     position: absolute; top: 10px; right: 10px; z-index: 5;
     width: 48px; height: 48px;
     background: var(--tone); color: #fff; border: none;
     box-shadow: 0 3px 10px rgba(0, 0, 0, .45);
   }
+  /* 画面進行ボタン: 画面右下に固定 (FAB) */
+  .fab-next {
+    position: fixed; right: 18px; bottom: 18px; z-index: 30;
+    width: 60px; height: 60px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .5);
+  }
+  #screen-game { padding-bottom: 84px; }
   .board-outer { position: relative; }
   .board-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .board-scroll svg { width: 100%; min-width: 640px; height: auto; display: block; }
@@ -226,9 +231,11 @@
     .q-line1 { font-size: .9rem; }
     .q-chord { font-size: 2rem; margin-top: 2px; }
     #countdown-area { padding: 4px 0 8px; }
-    .ring-wrap, .icon-btn.timer { width: 56px; height: 56px; }
+    #screen-game { padding-bottom: 64px; }
+    .ring-wrap { width: 56px; height: 56px; }
+    .icon-btn.timer { width: 50px; height: 50px; }
     #countdown-num, #next-countdown-num { font-size: 1.3rem; }
-    .phase-actions { margin-top: 8px; }
+    .fab-next { width: 52px; height: 52px; right: 12px; bottom: 12px; }
     #fretboard-wrap { padding: 8px 8px 8px; }
     #next-wrap { margin-top: 8px; }
   }
@@ -363,11 +370,9 @@
         </svg>
         <div id="countdown-num">5</div>
       </div>
-      <div class="phase-actions">
-        <button class="icon-btn primary" onclick="revealAnswer()" aria-label="答えを見る" title="答えを見る">
-          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-      </div>
+      <button class="icon-btn primary fab-next" onclick="revealAnswer()" aria-label="答えを見る" title="答えを見る">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </div>
 
     <!-- 答えフェーズ -->
@@ -382,11 +387,9 @@
           <div class="edge-fade right"><span>›</span></div>
         </div>
       </div>
-      <div class="phase-actions">
-        <button class="icon-btn primary" onclick="nextQuestion()" aria-label="次へ" title="次へ">
-          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-      </div>
+      <button class="icon-btn primary fab-next" onclick="nextQuestion()" aria-label="次へ" title="次へ">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
       <div id="next-wrap">
         <div class="timer-row">
           <div class="ring-wrap">

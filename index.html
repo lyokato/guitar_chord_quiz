@@ -180,13 +180,18 @@
     background: var(--tone); color: #fff; border: none;
     box-shadow: 0 3px 10px rgba(0, 0, 0, .45);
   }
-  /* 画面進行ボタン: 画面右下に固定 (FAB) */
-  .fab-next {
-    position: fixed; right: 18px; bottom: 18px; z-index: 30;
+  /* コントロール行: タイマー群は中央、進行ボタンはコンテンツ幅の右端に同一ライン配置 */
+  .control-line {
+    position: relative; margin-top: 16px; min-height: 72px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .control-line .ring-wrap { margin: 0; }
+  .next-btn {
+    position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
     width: 60px; height: 60px;
     box-shadow: 0 4px 14px rgba(0, 0, 0, .5);
   }
-  #screen-game { padding-bottom: 84px; }
+  .next-btn:active { transform: translateY(-50%) scale(.97); }
   .board-outer { position: relative; }
   .board-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .board-scroll svg { width: 100%; min-width: 640px; height: auto; display: block; }
@@ -200,7 +205,6 @@
   .edge-fade.right { right: 0; background: linear-gradient(to left,  rgba(20,23,28,.95), rgba(20,23,28,0)); justify-content: flex-end; }
   .edge-fade.visible { opacity: 1; }
 
-  #next-wrap { text-align: center; margin-top: 16px; }
 
   /* ---- スマホ縦持ち ---- */
   @media (max-width: 600px) {
@@ -231,11 +235,11 @@
     .q-line1 { font-size: .9rem; }
     .q-chord { font-size: 2rem; margin-top: 2px; }
     #countdown-area { padding: 4px 0 8px; }
-    #screen-game { padding-bottom: 64px; }
     .ring-wrap { width: 56px; height: 56px; }
     .icon-btn.timer { width: 50px; height: 50px; }
     #countdown-num, #next-countdown-num { font-size: 1.3rem; }
-    .fab-next { width: 52px; height: 52px; right: 12px; bottom: 12px; }
+    .control-line { margin-top: 8px; min-height: 56px; }
+    .next-btn { width: 52px; height: 52px; }
     #fretboard-wrap { padding: 8px 8px 8px; }
     #next-wrap { margin-top: 8px; }
   }
@@ -362,17 +366,19 @@
 
     <!-- 問題フェーズ: カウントダウン -->
     <div id="countdown-area">
-      <div class="ring-wrap">
-        <svg width="140" height="140" viewBox="0 0 140 140">
-          <circle class="ring-bg" cx="70" cy="70" r="60" fill="none" stroke-width="10"/>
-          <circle class="ring-fg" id="ring-fg" cx="70" cy="70" r="60" fill="none" stroke-width="10"
-                  stroke-linecap="round" stroke-dasharray="376.99" stroke-dashoffset="0"/>
-        </svg>
-        <div id="countdown-num">5</div>
+      <div class="control-line">
+        <div class="ring-wrap">
+          <svg width="140" height="140" viewBox="0 0 140 140">
+            <circle class="ring-bg" cx="70" cy="70" r="60" fill="none" stroke-width="10"/>
+            <circle class="ring-fg" id="ring-fg" cx="70" cy="70" r="60" fill="none" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="376.99" stroke-dashoffset="0"/>
+          </svg>
+          <div id="countdown-num">5</div>
+        </div>
+        <button class="icon-btn primary next-btn" onclick="revealAnswer()" aria-label="答えを見る" title="答えを見る">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
       </div>
-      <button class="icon-btn primary fab-next" onclick="revealAnswer()" aria-label="答えを見る" title="答えを見る">
-        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
     </div>
 
     <!-- 答えフェーズ -->
@@ -387,11 +393,8 @@
           <div class="edge-fade right"><span>›</span></div>
         </div>
       </div>
-      <button class="icon-btn primary fab-next" onclick="nextQuestion()" aria-label="次へ" title="次へ">
-        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div id="next-wrap">
-        <div class="timer-row">
+      <div class="control-line">
+        <div class="timer-row" id="next-wrap">
           <div class="ring-wrap">
             <svg width="90" height="90" viewBox="0 0 90 90">
               <circle class="ring-bg" cx="45" cy="45" r="38" fill="none" stroke-width="7"/>
@@ -407,6 +410,9 @@
             <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8.5 5.2v13.6L19.5 12z" fill="currentColor"/></svg>
           </button>
         </div>
+        <button class="icon-btn primary next-btn" onclick="nextQuestion()" aria-label="次へ" title="次へ">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
       </div>
     </div>
   </div>
@@ -1100,7 +1106,7 @@ function revealAnswer() {
   const nextWrap = document.getElementById("next-wrap");
   cd.paused = false;
   if (settings.autoNext) {
-    nextWrap.style.display = "block";
+    nextWrap.style.display = "flex";
     runCountdown(settings.answerSec, "next-ring-fg", "next-countdown-num", 238.76, nextQuestion);
     updateTimerButtons();
   } else {

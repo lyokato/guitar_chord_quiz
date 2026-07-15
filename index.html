@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ギターコード・ポジションクイズ</title>
+<style>
+  :root {
+    --bg: #14171c;
+    --panel: #1e232b;
+    --panel2: #262c36;
+    --text: #e8ecf1;
+    --sub: #9aa5b1;
+    --accent: #4fc3f7;
+    --root: #ef5350;
+    --tone: #26a69a;
+    --line: #3a424e;
+    --warn: #ffb74d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+  }
+  .app { width: 100%; max-width: 980px; padding: 24px 16px 48px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  h1 { font-size: 1.9rem; text-align: center; letter-spacing: .05em; }
+  h2 { font-size: 1.2rem; margin-bottom: 12px; color: var(--accent); }
+  button {
+    font-family: inherit;
+    border: none; border-radius: 10px;
+    cursor: pointer;
+    background: var(--panel2);
+    color: var(--text);
+    padding: 10px 18px;
+    font-size: 1rem;
+    transition: filter .15s, transform .05s;
+  }
+  button:hover { filter: brightness(1.2); }
+  button:active { transform: scale(.97); }
+  button.primary { background: var(--accent); color: #0b0e12; font-weight: 700; }
+  button.big { font-size: 1.25rem; padding: 16px 40px; }
+  button.ghost { background: transparent; border: 1px solid var(--line); }
+  button.small { font-size: .85rem; padding: 6px 12px; border-radius: 8px; }
+
+  /* ---- title ---- */
+  #screen-title { text-align: center; padding-top: 10vh; }
+  #screen-title .logo { font-size: 4rem; margin-bottom: 8px; }
+  #screen-title p.desc { color: var(--sub); margin: 16px 0 40px; line-height: 1.8; }
+  #screen-title .menu { display: flex; flex-direction: column; gap: 16px; align-items: center; }
+  #screen-title .menu button { width: 260px; }
+
+  /* ---- settings ---- */
+  .panel { background: var(--panel); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
+  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 8px 0; }
+  .row label { color: var(--text); }
+  input[type="number"] {
+    width: 80px; padding: 8px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--panel2);
+    color: var(--text); font-size: 1rem; text-align: center;
+  }
+  input[type="checkbox"] { transform: scale(1.15); accent-color: var(--accent); margin-right: 2px; }
+  .filter-group {
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 12px;
+  }
+  .chk-group { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 10px; }
+  .chk-group label {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--panel2); padding: 7px 12px; border-radius: 8px;
+    cursor: pointer; user-select: none; font-size: .9rem;
+    border: 1px solid transparent; white-space: nowrap;
+  }
+  .chk-group label:has(input:checked) { border-color: rgba(154, 165, 177, .45); }
+  .chk-group label .sym {
+    color: #fff; font-weight: 700; font-family: Menlo, Consolas, monospace; font-size: .95em;
+  }
+  .chk-group label .sub { color: var(--sub); font-size: .76em; }
+  .roots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+  .roots-grid label { justify-content: center; }
+  .group-head { display: flex; align-items: center; gap: 10px; }
+  .group-head .name { font-weight: 700; color: var(--text); }
+  .group-head .head-btns { margin-left: auto; display: flex; gap: 6px; }
+  .note { color: var(--sub); font-size: .8rem; margin-top: 8px; line-height: 1.6; }
+  .count-badge { color: var(--warn); font-weight: 700; font-size: 1.2rem; }
+
+  #question-list {
+    display: none; margin-top: 12px; max-height: 340px; overflow-y: auto;
+    border: 1px solid var(--line); border-radius: 10px; padding: 4px 12px 12px;
+    background: rgba(0,0,0,.15);
+  }
+  #question-list.open { display: block; }
+  .q-group { margin-top: 12px; }
+  .q-group-title {
+    font-size: .82rem; font-weight: 700; color: var(--accent);
+    border-bottom: 1px solid var(--line); padding-bottom: 4px; margin-bottom: 8px;
+    letter-spacing: .04em;
+  }
+  .q-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .q-chip {
+    background: var(--panel2); border-radius: 7px; padding: 5px 9px;
+    font-size: .85rem; cursor: pointer; border: 1px solid transparent;
+    font-family: Menlo, Consolas, monospace; min-width: 52px; text-align: center;
+  }
+  .q-chip:hover { border-color: var(--accent); }
+  #preview-box { margin-top: 14px; background: var(--panel2); border-radius: 10px; padding: 14px; display: none; }
+  #preview-box.open { display: block; }
+  #preview-title { font-weight: 700; margin-bottom: 8px; }
+
+  .toolbar { display: flex; gap: 12px; margin-top: 8px; }
+
+  /* ---- game ---- */
+  #game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  #game-qno { color: var(--sub); }
+  .q-card {
+    background: var(--panel); border-radius: 16px;
+    padding: 30px 20px; text-align: center; margin-bottom: 20px;
+  }
+  .q-line1 { font-size: 1.3rem; color: var(--sub); letter-spacing: .1em; }
+  .q-chord { font-size: 4.2rem; font-weight: 800; margin: 6px 0; color: var(--accent); }
+  .q-form { font-size: 1.6rem; font-weight: 700; margin-top: 4px; }
+
+  #countdown-area { text-align: center; padding: 10px 0 20px; }
+  .ring-wrap { position: relative; width: 140px; height: 140px; margin: 0 auto; }
+  .ring-wrap svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+  .ring-bg { stroke: var(--panel2); }
+  .ring-fg { stroke: var(--accent); transition: stroke-dashoffset .1s linear; }
+  #countdown-num, #next-countdown-num {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 3rem; font-weight: 800;
+  }
+  .phase-actions { display: flex; justify-content: center; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
+
+  #answer-area { display: none; }
+  #fretboard-wrap { background: var(--panel); border-radius: 16px; padding: 16px 10px 6px; }
+  #game-board, #preview-board { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  #game-board svg, #preview-board svg { width: 100%; min-width: 640px; height: auto; display: block; }
+  .legend { display: flex; justify-content: center; gap: 24px; padding: 10px 0 12px; color: var(--sub); font-size: .85rem; flex-wrap: wrap; }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+  .dot.root { background: var(--root); }
+  .dot.tone { background: var(--tone); }
+  .dot.ref { border: 2px dashed var(--root); }
+  .bar-mark { width: 9px; height: 18px; border-radius: 5px; display: inline-block; background: rgba(224,172,105,.55); }
+
+  #next-wrap { text-align: center; margin-top: 16px; }
+  .small-ring { width: 90px; height: 90px; }
+  .small-ring #next-countdown-num { font-size: 2rem; }
+
+  /* ---- スマホ縦持ち ---- */
+  @media (max-width: 600px) {
+    .app { padding: 16px 10px 40px; }
+    h1 { font-size: 1.4rem; }
+    #screen-title { padding-top: 6vh; }
+    #screen-title .logo { font-size: 3rem; }
+    .q-line1 { font-size: 1rem; }
+    .q-chord { font-size: 2.8rem; }
+    .q-form { font-size: 1.15rem; }
+    .q-card { padding: 20px 12px; }
+    .panel { padding: 14px 12px; }
+    .filter-group { padding: 10px; }
+    .chk-group label { padding: 6px 9px; font-size: .82rem; }
+    .roots-grid { grid-template-columns: repeat(4, 1fr); }
+    .group-head { flex-wrap: wrap; }
+    .ring-wrap { width: 110px; height: 110px; }
+    #countdown-num { font-size: 2.4rem; }
+    .legend { gap: 10px 16px; font-size: .75rem; }
+    button.big { width: 100%; max-width: 320px; }
+    .phase-actions button { flex: 1 1 auto; }
+  }
+
+  /* ---- スマホ横持ち (高さが低い画面) ---- */
+  @media (max-height: 520px) and (orientation: landscape) {
+    .app { padding: 10px 16px 24px; }
+    #screen-title { padding-top: 2vh; }
+    #screen-title .logo { font-size: 2rem; margin-bottom: 0; }
+    #screen-title p.desc { margin: 8px 0 16px; }
+    #screen-title .menu { flex-direction: row; justify-content: center; }
+    #screen-title .menu button { width: auto; min-width: 180px; }
+    #game-header { margin-bottom: 8px; }
+    .q-card { padding: 10px 12px; margin-bottom: 10px; }
+    .q-line1 { font-size: .9rem; }
+    .q-chord { font-size: 2rem; margin: 2px 0; }
+    .q-form { font-size: 1rem; margin-top: 0; }
+    #countdown-area { padding: 4px 0 8px; }
+    .ring-wrap { width: 88px; height: 88px; }
+    #countdown-num { font-size: 1.8rem; }
+    .small-ring { width: 64px; height: 64px; }
+    .small-ring #next-countdown-num { font-size: 1.4rem; }
+    .phase-actions { margin-top: 8px; }
+    #fretboard-wrap { padding: 8px 8px 2px; }
+    .legend { padding: 6px 0 8px; font-size: .72rem; gap: 8px 14px; }
+    #next-wrap { margin-top: 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ==== タイトル ==== -->
+  <div id="screen-title" class="screen active">
+    <div class="logo">🎸</div>
+    <h1>コード・ポジションクイズ</h1>
+    <p class="desc">
+      表示されたコード情報から指板上のポジションを思い浮かべよう。<br>
+      数秒後に答えが指板グラフィックで表示されます。
+    </p>
+    <div class="menu">
+      <button class="primary big" onclick="startGame()">ゲーム開始</button>
+      <button class="big ghost" onclick="showScreen('settings')">設定</button>
+    </div>
+  </div>
+
+  <!-- ==== 設定 ==== -->
+  <div id="screen-settings" class="screen">
+    <h1 style="margin-bottom:20px;">設定</h1>
+
+    <div class="panel">
+      <h2>タイマー</h2>
+      <div class="row">
+        <label>問題 → 答え:</label>
+        <input type="number" id="set-question-sec" min="1" max="60" value="5"> 秒
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="set-auto-next" checked> 答えの後、自動で次の問題へ進む</label>
+      </div>
+      <div class="row" id="row-answer-sec">
+        <label>答え → 次の問題:</label>
+        <input type="number" id="set-answer-sec" min="1" max="60" value="10"> 秒
+      </div>
+      <p class="note">自動送りをオフにすると、答え画面に「次へ」ボタンが表示されます。</p>
+    </div>
+
+    <div class="panel">
+      <h2>出題フィルター</h2>
+
+      <div class="filter-group">
+        <div class="group-head"><span class="name">ルート弦</span>
+          <span class="head-btns">
+            <button class="small" onclick="setGroup('strings', true)">全選択</button>
+            <button class="small" onclick="setGroup('strings', false)">全解除</button>
+          </span>
+        </div>
+        <div class="chk-group" id="grp-strings"></div>
+      </div>
+
+      <div class="filter-group">
+        <div class="group-head"><span class="name">構成</span>
+          <span class="head-btns">
+            <button class="small" onclick="setGroup('forms', true)">全選択</button>
+            <button class="small" onclick="setGroup('forms', false)">全解除</button>
+          </span>
+        </div>
+        <div class="chk-group" id="grp-forms"></div>
+        <p class="note">※ 2・3・4・6弦は6弦ルートのみ。m7♭5のバレーは6弦ルートには無いため2・3・4・6弦で出題されます。</p>
+      </div>
+
+      <div class="filter-group">
+        <div class="group-head"><span class="name">コードタイプ</span>
+          <span class="head-btns">
+            <button class="small" onclick="setGroup('quals', true)">全選択</button>
+            <button class="small" onclick="setGroup('quals', false)">全解除</button>
+          </span>
+        </div>
+        <div class="chk-group" id="grp-quals"></div>
+      </div>
+
+      <div class="filter-group">
+        <div class="group-head"><span class="name">ルート音</span>
+          <span class="head-btns">
+            <button class="small" onclick="setGroup('roots', true)">全選択</button>
+            <button class="small" onclick="setGroup('roots', false)">全解除</button>
+          </span>
+        </div>
+        <div class="chk-group roots-grid" id="grp-roots"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>登録済みの設問</h2>
+      <p>現在の対象: <span class="count-badge" id="pool-count">0</span> 問</p>
+      <div class="toolbar">
+        <button class="small" onclick="toggleQuestionList()">一覧を表示 / 閉じる</button>
+      </div>
+      <div id="question-list"></div>
+      <div id="preview-box">
+        <div id="preview-title"></div>
+        <div id="preview-board"></div>
+        <div class="toolbar">
+          <button class="small primary" onclick="playPreview()">♪ 音を鳴らす</button>
+          <button class="small" onclick="closePreview()">閉じる</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top: 8px;">
+      <button class="big" onclick="showScreen('title')">タイトルへ戻る</button>
+    </div>
+  </div>
+
+  <!-- ==== ゲーム ==== -->
+  <div id="screen-game" class="screen">
+    <div id="game-header">
+      <span id="game-qno">第 1 問</span>
+      <button class="small ghost" onclick="endGame()">終了</button>
+    </div>
+
+    <div class="q-card">
+      <div class="q-line1" id="q-string"></div>
+      <div class="q-chord" id="q-chord"></div>
+      <div class="q-form" id="q-form"></div>
+    </div>
+
+    <!-- 問題フェーズ: カウントダウン -->
+    <div id="countdown-area">
+      <div class="ring-wrap">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <circle class="ring-bg" cx="70" cy="70" r="60" fill="none" stroke-width="10"/>
+          <circle class="ring-fg" id="ring-fg" cx="70" cy="70" r="60" fill="none" stroke-width="10"
+                  stroke-linecap="round" stroke-dasharray="376.99" stroke-dashoffset="0"/>
+        </svg>
+        <div id="countdown-num">5</div>
+      </div>
+      <div class="phase-actions">
+        <button class="ghost" onclick="revealAnswer()">答えを見る ≫</button>
+      </div>
+    </div>
+
+    <!-- 答えフェーズ -->
+    <div id="answer-area">
+      <div id="fretboard-wrap">
+        <div id="game-board"></div>
+        <div class="legend">
+          <span><span class="dot root"></span>ルート音</span>
+          <span><span class="dot tone"></span>構成音</span>
+          <span><span class="dot ref"></span>ルート基準位置(弾かない)</span>
+          <span><span class="bar-mark"></span>人差し指バレー</span>
+        </div>
+      </div>
+      <div class="phase-actions">
+        <button class="primary" onclick="playCurrent()">♪ 音を鳴らす</button>
+        <button id="pause-btn" onclick="togglePause()">⏸ 一時停止</button>
+        <button onclick="nextQuestion()">次へ ≫</button>
+      </div>
+      <div id="next-wrap">
+        <div class="ring-wrap small-ring">
+          <svg width="90" height="90" viewBox="0 0 90 90">
+            <circle class="ring-bg" cx="45" cy="45" r="38" fill="none" stroke-width="7"/>
+            <circle class="ring-fg" id="next-ring-fg" cx="45" cy="45" r="38" fill="none" stroke-width="7"
+                    stroke-linecap="round" stroke-dasharray="238.76" stroke-dashoffset="0"/>
+          </svg>
+          <div id="next-countdown-num">5</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+
+/* ================= コードデータ ================= */
+
+const NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+
+// 開放弦: 弦番号 → { pc: ピッチクラス, midi }
+const OPEN_STRINGS = {
+  6: { pc: 4,  midi: 40 }, // E2
+  5: { pc: 9,  midi: 45 }, // A2
+  4: { pc: 2,  midi: 50 }, // D3
+  3: { pc: 7,  midi: 55 }, // G3
+  2: { pc: 11, midi: 59 }, // B3
+  1: { pc: 4,  midi: 64 }  // E4
+};
+
+// suffix: コードネーム表記用 / sym: 設定画面での記号表示用
+const QUALITIES = {
+  maj:  { suffix: "",     sym: "Maj",  name: "メジャー",       tones: [0, 4, 7] },
+  min:  { suffix: "m",    sym: "m",    name: "マイナー",       tones: [0, 3, 7] },
+  dom7: { suffix: "7",    sym: "7",    name: "セブンス",       tones: [0, 4, 7, 10] },
+  maj7: { suffix: "M7",   sym: "M7",   name: "メジャーセブンス", tones: [0, 4, 7, 11] },
+  m7:   { suffix: "m7",   sym: "m7",   name: "マイナーセブンス", tones: [0, 3, 7, 10] },
+  m7b5: { suffix: "m7♭5", sym: "m7♭5", name: "マイナーセブンスフラットファイブ", tones: [0, 3, 6, 10] }
+};
+
+const FORMS = {
+  full:  { name: "バレー" },
+  s2346: { name: "2・3・4・6弦" }, // 6弦ルートのみ
+  s234:  { name: "2・3・4弦" },
+  s123:  { name: "1・2・3弦" }
+};
+
+// シェイプ定義: ルートフレット R からのオフセット { 弦番号: オフセット }
+const SHAPES = {
+  6: { // 6弦ルート (Eシェイプ基準)
+    full: {
+      maj:  { 6:0, 5:2, 4:2, 3:1, 2:0, 1:0 },
+      min:  { 6:0, 5:2, 4:2, 3:0, 2:0, 1:0 },
+      dom7: { 6:0, 5:2, 4:0, 3:1, 2:0, 1:0 },
+      maj7: { 6:0, 5:2, 4:1, 3:1, 2:0, 1:0 },
+      m7:   { 6:0, 5:2, 4:0, 3:0, 2:0, 1:0 }
+      // m7b5 はバレーフォームが無いため 2・3・4・6弦 四音構成でのみ出題
+    },
+    s2346: { // ジャズ系シェルボイシング (5・1弦ミュート)
+      maj:  { 6:0, 4:2, 3:1, 2:0 },  // root, root, 3, 5
+      min:  { 6:0, 4:2, 3:0, 2:0 },  // root, root, b3, 5
+      dom7: { 6:0, 4:0, 3:1, 2:0 },  // root, b7, 3, 5
+      maj7: { 6:0, 4:1, 3:1, 2:0 },  // root, M7, 3, 5
+      m7:   { 6:0, 4:0, 3:0, 2:0 },  // root, b7, b3, 5
+      m7b5: { 6:0, 4:0, 3:0, 2:-1 }  // root, b7, b3, b5
+    },
+    s234: {
+      maj:  { 4:2, 3:1, 2:0 },
+      min:  { 4:2, 3:0, 2:0 },
+      dom7: { 4:0, 3:1, 2:0 },
+      maj7: { 4:1, 3:1, 2:0 },
+      m7:   { 4:0, 3:0, 2:0 },
+      m7b5: { 4:0, 3:0, 2:-1 }   // b7, b3, b5
+    },
+    s123: {
+      maj:  { 3:1, 2:0, 1:0 },
+      min:  { 3:0, 2:0, 1:0 },
+      dom7: { 3:1, 2:3, 1:0 },   // 3rd, b7, root
+      maj7: { 3:1, 2:0, 1:-1 },  // 3rd, 5th, maj7
+      m7:   { 3:0, 2:3, 1:0 },   // b3, b7, root
+      m7b5: { 3:0, 2:-1, 1:0 }   // b3, b5, root
+    }
+  },
+  5: { // 5弦ルート (Aシェイプ基準)
+    full: {
+      maj:  { 5:0, 4:2, 3:2, 2:2, 1:0 },
+      min:  { 5:0, 4:2, 3:2, 2:1, 1:0 },
+      dom7: { 5:0, 4:2, 3:0, 2:2, 1:0 },
+      maj7: { 5:0, 4:2, 3:1, 2:2, 1:0 },
+      m7:   { 5:0, 4:2, 3:0, 2:1, 1:0 },
+      m7b5: { 5:0, 4:1, 3:0, 2:1 }           // root, b5, b7, b3 (1弦ミュート)
+    },
+    s234: {
+      maj:  { 4:2, 3:2, 2:2 },
+      min:  { 4:2, 3:2, 2:1 },
+      dom7: { 4:2, 3:0, 2:2 },
+      maj7: { 4:2, 3:1, 2:2 },
+      m7:   { 4:2, 3:0, 2:1 },
+      m7b5: { 4:1, 3:0, 2:1 }    // b5, b7, b3
+    },
+    s123: {
+      maj:  { 3:2, 2:2, 1:0 },
+      min:  { 3:2, 2:1, 1:0 },
+      dom7: { 3:0, 2:2, 1:0 },
+      maj7: { 3:1, 2:2, 1:0 },
+      m7:   { 3:0, 2:1, 1:0 },
+      m7b5: { 3:0, 2:1, 1:-1 }   // b7, b3, b5
+    }
+  }
+};
+
+// ルート音 → ルート弦上のフレット (1〜12)
+function rootFret(rootPc, stringNo) {
+  const open = OPEN_STRINGS[stringNo].pc;
+  let r = ((rootPc - open) % 12 + 12) % 12;
+  if (r === 0) r = 12;
+  return r;
+}
+
+// 問題オブジェクトからボイシングを計算
+// 戻り値: { positions: [{string, fret, pc, midi, isRoot}], refPos: {string, fret} | null }
+function computeVoicing(q) {
+  const R = rootFret(q.root, q.string);
+  const shape = SHAPES[q.string][q.form][q.qual];
+  const positions = [];
+  for (const [sStr, off] of Object.entries(shape)) {
+    const s = Number(sStr);
+    const fret = R + off;
+    const pc = (OPEN_STRINGS[s].pc + fret) % 12;
+    positions.push({
+      string: s, fret, pc,
+      midi: OPEN_STRINGS[s].midi + fret,
+      isRoot: pc === q.root
+    });
+  }
+  let refPos = null;
+  if (!positions.some(p => p.string === q.string)) {
+    refPos = { string: q.string, fret: R, midi: OPEN_STRINGS[q.string].midi + R };
+  }
+  // バレー(人差し指)シルエット: バレーコード時のみ (m7♭5はバレーを使わない運指)
+  let barre = null;
+  if (q.form === "full" && q.qual !== "m7b5") {
+    barre = { fret: R, fromString: 1, toString: q.string };
+  }
+  return { positions, refPos, barre };
+}
+
+function chordName(q) {
+  const suffix = QUALITIES[q.qual].suffix;
+  return NOTE_NAMES[q.root] + (suffix ? " " + suffix : "");
+}
+function questionLabel(q) {
+  return q.string + "弦ルート " + chordName(q) + "・" + FORMS[q.form].name;
+}
+
+/* ================= 設定 ================= */
+
+const settings = {
+  questionSec: 5,
+  autoNext: true,
+  answerSec: 10,
+  strings: { 6: true, 5: true },
+  forms: { full: true, s2346: true, s234: true, s123: true },
+  quals: { maj: true, min: true, dom7: true, maj7: true, m7: true, m7b5: true },
+  roots: Object.fromEntries(NOTE_NAMES.map((_, i) => [i, true]))
+};
+
+function saveSettings() {
+  try { localStorage.setItem("chordQuizSettings", JSON.stringify(settings)); } catch (e) {}
+}
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem("chordQuizSettings");
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (typeof s.questionSec === "number") settings.questionSec = s.questionSec;
+    if (typeof s.autoNext === "boolean") settings.autoNext = s.autoNext;
+    if (typeof s.answerSec === "number") settings.answerSec = s.answerSec;
+    for (const g of ["strings", "forms", "quals", "roots"]) {
+      if (s[g]) for (const k of Object.keys(settings[g])) {
+        if (typeof s[g][k] === "boolean") settings[g][k] = s[g][k];
+      }
+    }
+  } catch (e) {}
+}
+
+function buildPool() {
+  const pool = [];
+  for (const sStr of Object.keys(settings.strings)) {
+    if (!settings.strings[sStr]) continue;
+    for (const form of Object.keys(settings.forms)) {
+      if (!settings.forms[form]) continue;
+      for (const qual of Object.keys(settings.quals)) {
+        if (!settings.quals[qual]) continue;
+        // 定義の無い組み合わせはスキップ (例: 5弦ルートの四音構成)
+        if (!SHAPES[sStr] || !SHAPES[sStr][form] || !SHAPES[sStr][form][qual]) continue;
+        for (const rStr of Object.keys(settings.roots)) {
+          if (!settings.roots[rStr]) continue;
+          pool.push({ string: Number(sStr), form, qual, root: Number(rStr) });
+        }
+      }
+    }
+  }
+  return pool;
+}
+
+/* ---- 設定UIの構築 ---- */
+
+function makeCheckbox(group, key, label, sym) {
+  const lb = document.createElement("label");
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.checked = settings[group][key];
+  cb.addEventListener("change", () => {
+    settings[group][key] = cb.checked;
+    saveSettings();
+    refreshPoolInfo();
+  });
+  cb.dataset.group = group;
+  cb.dataset.key = key;
+  lb.appendChild(cb);
+  if (sym) {
+    // 記号を主体(白)に、カタカナ表記を補足(小さく弱い色)に
+    const main = document.createElement("span");
+    main.className = "sym";
+    main.textContent = sym;
+    lb.appendChild(main);
+    const sub = document.createElement("span");
+    sub.className = "sub";
+    sub.textContent = label;
+    lb.appendChild(sub);
+  } else {
+    lb.appendChild(document.createTextNode(label));
+  }
+  return lb;
+}
+
+function buildSettingsUI() {
+  const gs = document.getElementById("grp-strings");
+  gs.appendChild(makeCheckbox("strings", "6", "6弦ルート"));
+  gs.appendChild(makeCheckbox("strings", "5", "5弦ルート"));
+
+  const gf = document.getElementById("grp-forms");
+  for (const k of Object.keys(FORMS)) gf.appendChild(makeCheckbox("forms", k, FORMS[k].name));
+
+  const gq = document.getElementById("grp-quals");
+  for (const k of Object.keys(QUALITIES)) {
+    const q = QUALITIES[k];
+    gq.appendChild(makeCheckbox("quals", k, q.name, q.sym));
+  }
+
+  const gr = document.getElementById("grp-roots");
+  for (let i = 0; i < 12; i++) gr.appendChild(makeCheckbox("roots", String(i), NOTE_NAMES[i]));
+
+  const qSec = document.getElementById("set-question-sec");
+  const aSec = document.getElementById("set-answer-sec");
+  const auto = document.getElementById("set-auto-next");
+  qSec.value = settings.questionSec;
+  aSec.value = settings.answerSec;
+  auto.checked = settings.autoNext;
+  document.getElementById("row-answer-sec").style.opacity = settings.autoNext ? 1 : 0.4;
+  aSec.disabled = !settings.autoNext;
+
+  qSec.addEventListener("change", () => {
+    settings.questionSec = clampInt(qSec.value, 1, 60, 5);
+    qSec.value = settings.questionSec;
+    saveSettings();
+  });
+  aSec.addEventListener("change", () => {
+    settings.answerSec = clampInt(aSec.value, 1, 60, 10);
+    aSec.value = settings.answerSec;
+    saveSettings();
+  });
+  auto.addEventListener("change", () => {
+    settings.autoNext = auto.checked;
+    aSec.disabled = !auto.checked;
+    document.getElementById("row-answer-sec").style.opacity = auto.checked ? 1 : 0.4;
+    saveSettings();
+  });
+
+  refreshPoolInfo();
+}
+
+function clampInt(v, min, max, def) {
+  const n = parseInt(v, 10);
+  if (isNaN(n)) return def;
+  return Math.min(max, Math.max(min, n));
+}
+
+function setGroup(group, value) {
+  for (const k of Object.keys(settings[group])) settings[group][k] = value;
+  document.querySelectorAll('input[data-group="' + group + '"]').forEach(cb => { cb.checked = value; });
+  saveSettings();
+  refreshPoolInfo();
+}
+
+function refreshPoolInfo() {
+  const pool = buildPool();
+  document.getElementById("pool-count").textContent = pool.length;
+  const list = document.getElementById("question-list");
+  if (list.classList.contains("open")) renderQuestionList();
+}
+
+/* ---- 設問一覧・プレビュー ---- */
+
+let previewQuestion = null;
+
+function toggleQuestionList() {
+  const list = document.getElementById("question-list");
+  list.classList.toggle("open");
+  if (list.classList.contains("open")) renderQuestionList();
+}
+
+function renderQuestionList() {
+  const list = document.getElementById("question-list");
+  list.innerHTML = "";
+  const pool = buildPool();
+  if (pool.length === 0) {
+    list.textContent = "対象の設問がありません。フィルターを確認してください。";
+    return;
+  }
+  // ルート弦 × 構成 でグループ化して見やすく
+  const groups = new Map();
+  for (const q of pool) {
+    const key = q.string + "|" + q.form;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(q);
+  }
+  for (const [key, qs] of groups) {
+    const [s, form] = key.split("|");
+    const g = document.createElement("div");
+    g.className = "q-group";
+    const title = document.createElement("div");
+    title.className = "q-group-title";
+    title.textContent = s + "弦ルート ─ " + FORMS[form].name + " (" + qs.length + "問)";
+    g.appendChild(title);
+    const chips = document.createElement("div");
+    chips.className = "q-chips";
+    for (const q of qs) {
+      const chip = document.createElement("div");
+      chip.className = "q-chip";
+      chip.textContent = chordName(q);
+      chip.title = questionLabel(q);
+      chip.addEventListener("click", () => openPreview(q));
+      chips.appendChild(chip);
+    }
+    g.appendChild(chips);
+    list.appendChild(g);
+  }
+}
+
+function openPreview(q) {
+  previewQuestion = q;
+  document.getElementById("preview-box").classList.add("open");
+  document.getElementById("preview-title").textContent = questionLabel(q);
+  renderFretboard(document.getElementById("preview-board"), q);
+  document.getElementById("preview-box").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+function closePreview() {
+  previewQuestion = null;
+  document.getElementById("preview-box").classList.remove("open");
+}
+function playPreview() {
+  if (previewQuestion) playChord(previewQuestion);
+}
+
+/* ================= 指板グラフィック ================= */
+
+const FB = {
+  frets: 15,
+  left: 56, right: 20, top: 34, bottom: 34,
+  stringGap: 30
+};
+
+function renderFretboard(container, q) {
+  const { positions, refPos, barre } = computeVoicing(q);
+  const width = 960;
+  const height = FB.top + FB.stringGap * 5 + FB.bottom;
+  const innerW = width - FB.left - FB.right;
+  const fw = innerW / FB.frets;
+  const nutX = FB.left;
+  const yOf = s => FB.top + (s - 1) * FB.stringGap; // 1弦が上
+  const fretCenterX = f => f === 0 ? nutX - 22 : nutX + (f - 0.5) * fw;
+
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+
+  const el = (tag, attrs, text) => {
+    const e = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    if (text !== undefined) e.textContent = text;
+    svg.appendChild(e);
+    return e;
+  };
+
+  // 指板背景
+  el("rect", {
+    x: nutX, y: yOf(1) - 8, width: innerW, height: FB.stringGap * 5 + 16,
+    fill: "#2b241d", rx: 3
+  });
+
+  // フレット線
+  for (let f = 0; f <= FB.frets; f++) {
+    const x = nutX + f * fw;
+    el("line", {
+      x1: x, y1: yOf(1) - 8, x2: x, y2: yOf(6) + 8,
+      stroke: f === 0 ? "#d8d2c5" : "#5a5248",
+      "stroke-width": f === 0 ? 7 : 2.5
+    });
+  }
+
+  // ポジションマーク (インレイ)
+  const midY = (yOf(3) + yOf(4)) / 2;
+  for (const f of [3, 5, 7, 9, 15]) {
+    el("circle", { cx: fretCenterX(f), cy: midY, r: 6, fill: "#4a4238" });
+  }
+  el("circle", { cx: fretCenterX(12), cy: yOf(2), r: 6, fill: "#4a4238" });
+  el("circle", { cx: fretCenterX(12), cy: yOf(5), r: 6, fill: "#4a4238" });
+
+  // 弦
+  for (let s = 1; s <= 6; s++) {
+    el("line", {
+      x1: nutX - 4, y1: yOf(s), x2: nutX + innerW, y2: yOf(s),
+      stroke: "#b8beC6", "stroke-width": 0.8 + s * 0.45
+    });
+    el("text", {
+      x: nutX - 36, y: yOf(s) + 5, fill: "var(--sub)",
+      "font-size": 14, "text-anchor": "middle"
+    }, s + "弦");
+  }
+
+  // フレット番号
+  for (const f of [1, 3, 5, 7, 9, 12, 15]) {
+    el("text", {
+      x: fretCenterX(f), y: yOf(6) + 28, fill: "var(--sub)",
+      "font-size": 14, "text-anchor": "middle"
+    }, f);
+  }
+
+  // 人差し指バレーのシルエット
+  if (barre) {
+    const bx = fretCenterX(barre.fret);
+    const yTop = yOf(barre.fromString) - 15;
+    const yBot = yOf(barre.toString) + 15;
+    el("rect", {
+      x: bx - 11, y: yTop, width: 22, height: yBot - yTop,
+      rx: 11, fill: "#e0ac69", "fill-opacity": 0.45,
+      stroke: "#e0ac69", "stroke-opacity": 0.7, "stroke-width": 1.5
+    });
+    // 指先の丸み
+    el("circle", { cx: bx, cy: yTop + 11, r: 13, fill: "#e0ac69", "fill-opacity": 0.45 });
+  }
+
+  // ルート基準位置(弾かない)
+  if (refPos) {
+    el("circle", {
+      cx: fretCenterX(refPos.fret), cy: yOf(refPos.string), r: 12,
+      fill: "none", stroke: "var(--root)", "stroke-width": 2.5, "stroke-dasharray": "4 3"
+    });
+    el("text", {
+      x: fretCenterX(refPos.fret), y: yOf(refPos.string) + 4.5, fill: "var(--root)",
+      "font-size": 12, "font-weight": "bold", "text-anchor": "middle"
+    }, "R");
+  }
+
+  // 押さえるポジション
+  for (const p of positions) {
+    el("circle", {
+      cx: fretCenterX(p.fret), cy: yOf(p.string), r: 13,
+      fill: p.isRoot ? "var(--root)" : "var(--tone)",
+      stroke: "#0e1114", "stroke-width": 1.5
+    });
+    el("text", {
+      x: fretCenterX(p.fret), y: yOf(p.string) + 4.5, fill: "#fff",
+      "font-size": 11.5, "font-weight": "bold", "text-anchor": "middle"
+    }, NOTE_NAMES[p.pc]);
+  }
+
+  container.innerHTML = "";
+  container.appendChild(svg);
+}
+
+/* ================= サウンド ================= */
+
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+
+function pluck(ctx, midi, t, gain, dur) {
+  const freq = 440 * Math.pow(2, (midi - 69) / 12);
+  const osc1 = ctx.createOscillator();
+  osc1.type = "triangle";
+  osc1.frequency.value = freq;
+  const osc2 = ctx.createOscillator();
+  osc2.type = "sawtooth";
+  osc2.frequency.value = freq;
+  const osc2gain = ctx.createGain();
+  osc2gain.gain.value = 0.25;
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(Math.min(freq * 6, 8000), t);
+  filter.frequency.exponentialRampToValueAtTime(Math.max(freq * 1.5, 300), t + dur * 0.8);
+  filter.Q.value = 1;
+
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.0001, t);
+  env.gain.exponentialRampToValueAtTime(gain, t + 0.008);
+  env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+  osc1.connect(filter);
+  osc2.connect(osc2gain);
+  osc2gain.connect(filter);
+  filter.connect(env);
+  env.connect(ctx.destination);
+
+  osc1.start(t); osc2.start(t);
+  osc1.stop(t + dur + 0.1); osc2.stop(t + dur + 0.1);
+}
+
+function playChord(q) {
+  const ctx = getAudioCtx();
+  const { positions, refPos } = computeVoicing(q);
+  const t0 = ctx.currentTime + 0.05;
+  if (refPos) pluck(ctx, refPos.midi, t0, 0.10, 2.2); // 基準ルートは控えめに
+  const sorted = positions.slice().sort((a, b) => a.midi - b.midi);
+  sorted.forEach((p, i) => pluck(ctx, p.midi, t0 + 0.055 * i, 0.22, 2.2));
+}
+
+/* ================= ゲーム進行 ================= */
+
+const game = {
+  pool: [],
+  current: null,
+  last: null,
+  qno: 0,
+  timer: null
+};
+
+function showScreen(name) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById("screen-" + name).classList.add("active");
+}
+
+function startGame() {
+  const pool = buildPool();
+  if (pool.length === 0) {
+    alert("出題対象がありません。設定画面でフィルターを確認してください。");
+    return;
+  }
+  game.pool = pool;
+  game.qno = 0;
+  game.last = null;
+  showScreen("game");
+  nextQuestion();
+}
+
+function endGame() {
+  clearGameTimer();
+  showScreen("title");
+}
+
+function clearGameTimer() {
+  if (game.timer) { clearInterval(game.timer); game.timer = null; }
+}
+
+function pickQuestion() {
+  const pool = game.pool;
+  if (pool.length === 1) return pool[0];
+  let q;
+  do {
+    q = pool[Math.floor(Math.random() * pool.length)];
+  } while (game.last && sameQ(q, game.last));
+  return q;
+}
+function sameQ(a, b) {
+  return a.string === b.string && a.form === b.form && a.qual === b.qual && a.root === b.root;
+}
+
+function nextQuestion() {
+  clearGameTimer();
+  game.current = pickQuestion();
+  game.last = game.current;
+  game.qno++;
+
+  const q = game.current;
+  document.getElementById("game-qno").textContent = "第 " + game.qno + " 問";
+  document.getElementById("q-string").textContent = q.string + "弦ルート";
+  document.getElementById("q-chord").textContent = chordName(q);
+  document.getElementById("q-form").textContent = FORMS[q.form].name;
+
+  document.getElementById("countdown-area").style.display = "block";
+  document.getElementById("answer-area").style.display = "none";
+
+  runCountdown(settings.questionSec, "ring-fg", "countdown-num", 376.99, revealAnswer);
+}
+
+function revealAnswer() {
+  clearGameTimer();
+  document.getElementById("countdown-area").style.display = "none";
+  document.getElementById("answer-area").style.display = "block";
+
+  renderFretboard(document.getElementById("game-board"), game.current);
+
+  const nextWrap = document.getElementById("next-wrap");
+  const pauseBtn = document.getElementById("pause-btn");
+  cd.paused = false;
+  pauseBtn.textContent = "⏸ 一時停止";
+  if (settings.autoNext) {
+    nextWrap.style.display = "block";
+    pauseBtn.style.display = "";
+    runCountdown(settings.answerSec, "next-ring-fg", "next-countdown-num", 238.76, nextQuestion);
+  } else {
+    nextWrap.style.display = "none";
+    pauseBtn.style.display = "none";
+  }
+}
+
+function playCurrent() {
+  if (game.current) playChord(game.current);
+}
+
+const cd = { total: 0, remain: 0, ring: null, num: null, circ: 0, onDone: null, paused: false };
+
+function runCountdown(seconds, ringId, numId, circumference, onDone) {
+  clearGameTimer();
+  cd.total = seconds * 1000;
+  cd.remain = cd.total;
+  cd.ring = document.getElementById(ringId);
+  cd.num = document.getElementById(numId);
+  cd.circ = circumference;
+  cd.onDone = onDone;
+  cd.paused = false;
+  cd.num.textContent = seconds;
+  cd.ring.style.strokeDashoffset = 0;
+  startCdTicker();
+}
+
+function startCdTicker() {
+  let last = performance.now();
+  game.timer = setInterval(() => {
+    const now = performance.now();
+    cd.remain -= (now - last);
+    last = now;
+    const remain = Math.max(0, cd.remain);
+    cd.num.textContent = Math.ceil(remain / 1000);
+    cd.ring.style.strokeDashoffset = cd.circ * (1 - remain / cd.total);
+    if (remain <= 0) {
+      clearGameTimer();
+      cd.onDone();
+    }
+  }, 100);
+}
+
+function togglePause() {
+  const btn = document.getElementById("pause-btn");
+  if (!settings.autoNext) return; // 手動送り時はタイマー無し
+  if (cd.paused) {
+    cd.paused = false;
+    btn.textContent = "⏸ 一時停止";
+    startCdTicker();
+  } else {
+    if (!game.timer) return;
+    clearGameTimer();
+    cd.paused = true;
+    btn.textContent = "▶ 再開";
+  }
+}
+
+/* ================= 初期化 ================= */
+
+loadSettings();
+buildSettingsUI();
+</script>
+</body>
+</html>

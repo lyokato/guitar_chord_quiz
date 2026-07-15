@@ -462,18 +462,21 @@ const SHAPES = {
   }
 };
 
-// ルート音 → ルート弦上のフレット (1〜12)
-function rootFret(rootPc, stringNo) {
+// ルート音 → ルート弦上のフレット
+// 1フレットルート(6弦F, 5弦B♭)はバレーならそのまま、
+// 利用弦を限定したパターンでは手型が作りにくいため1オクターブ上(13フレット)へずらす
+function rootFret(rootPc, stringNo, form) {
   const open = OPEN_STRINGS[stringNo].pc;
   let r = ((rootPc - open) % 12 + 12) % 12;
   if (r === 0) r = 12;
+  if (r === 1 && form !== "full") r = 13;
   return r;
 }
 
 // 問題オブジェクトからボイシングを計算
 // 戻り値: { positions: [{string, fret, pc, midi, isRoot}], refPos: {string, fret} | null }
 function computeVoicing(q) {
-  const R = rootFret(q.root, q.string);
+  const R = rootFret(q.root, q.string, q.form);
   const shape = SHAPES[q.string][q.form][q.qual];
   const positions = [];
   for (const [sStr, off] of Object.entries(shape)) {
@@ -722,7 +725,7 @@ function playPreview() {
 /* ================= 指板グラフィック ================= */
 
 const FB = {
-  frets: 15,
+  frets: 16, // 1フレットルートの13フレット移動 (最大16フレット使用) に対応
   left: 56, right: 20, top: 34, bottom: 34,
   stringGap: 30
 };
@@ -858,7 +861,7 @@ function centerOnRoot(board, q) {
       const width = 960;
       const innerW = width - FB.left - FB.right;
       const fw = innerW / FB.frets;
-      const R = rootFret(q.root, q.string);
+      const R = rootFret(q.root, q.string, q.form);
       const rootX = FB.left + (R - 0.5) * fw; // viewBox座標でのルート位置
       const scale = board.scrollWidth / width;
       board.scrollLeft = rootX * scale - board.clientWidth / 2;

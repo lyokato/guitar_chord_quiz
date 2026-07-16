@@ -305,7 +305,6 @@
           </span>
         </div>
         <div class="chk-group" id="grp-forms"></div>
-        <p class="note">※ m7♭5にバレーは無く、四音構成(このグループ)でのみ出題されます。6弦ルートは2・3・4・6弦、5弦ルートは2・3・4・5弦を使用します。</p>
       </div>
 
       <div class="filter-group">
@@ -666,7 +665,10 @@ function buildSettingsUI() {
   gs.appendChild(makeCheckbox("strings", "5", "5弦ルート"));
 
   const gf = document.getElementById("grp-forms");
-  for (const k of Object.keys(FORMS)) gf.appendChild(makeCheckbox("forms", k, FORMS[k].name));
+  for (const k of Object.keys(FORMS)) {
+    const label = k === "s2346" ? "2・3・4・6弦(m7♭5の時だけ2・3・4・5弦)" : FORMS[k].name;
+    gf.appendChild(makeCheckbox("forms", k, label));
+  }
 
   const gq = document.getElementById("grp-quals");
   for (const k of Object.keys(QUALITIES)) {

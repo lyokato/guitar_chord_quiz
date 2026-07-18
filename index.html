@@ -132,7 +132,12 @@
   .roots-grid label { justify-content: center; }
   .group-head { display: flex; align-items: center; gap: 10px; }
   .group-head .name { font-weight: 700; color: var(--text); }
-  .group-head .head-btns { margin-left: auto; display: flex; gap: 6px; }
+  .group-head .head-btns, .sub-head .head-btns { margin-left: auto; display: flex; gap: 6px; }
+  .sub-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 12px; color: var(--sub); font-size: .85rem; font-weight: 700;
+  }
+  .divider { border-top: 1px solid var(--line); margin: 14px 0 2px; }
   .note { color: var(--sub); font-size: .8rem; margin-top: 8px; line-height: 1.6; }
   .count-badge { color: var(--warn); font-weight: 700; font-size: 1.2rem; }
 
@@ -298,16 +303,6 @@
       <h2>出題フィルター</h2>
 
       <div class="filter-group">
-        <div class="group-head"><span class="name">ルート弦</span>
-          <span class="head-btns">
-            <button class="small" onclick="setGroup('strings', true)">全選択</button>
-            <button class="small" onclick="setGroup('strings', false)">全解除</button>
-          </span>
-        </div>
-        <div class="chk-group" id="grp-strings"></div>
-      </div>
-
-      <div class="filter-group">
         <div class="group-head"><span class="name">コードタイプ</span>
           <span class="head-btns">
             <button class="small" onclick="setAllQualForms(true)">全選択</button>
@@ -318,7 +313,11 @@
       </div>
 
       <div class="filter-group">
-        <div class="group-head"><span class="name">ルート音</span>
+        <div class="group-head"><span class="name">ルート</span></div>
+        <div class="sub-head"><span>弦</span></div>
+        <div class="chk-group" id="grp-strings"></div>
+        <div class="divider"></div>
+        <div class="sub-head"><span>音</span>
           <span class="head-btns">
             <button class="small" onclick="setGroup('roots', true)">全選択</button>
             <button class="small" onclick="setGroup('roots', false)">全解除</button>

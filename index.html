@@ -452,16 +452,11 @@ const QUALITIES = {
 
 const FORMS = {
   full:  { name: "バレー" },
-  s2346: { name: "2・3・4・6弦" }, // 四音構成グループ (5弦ルートのm7♭5は実際は2・3・4・5弦)
+  s2346: { name: "2・3・4・6弦" }, // 四音構成 (6弦ルート)
+  s2345: { name: "2・3・4・5弦" }, // 四音構成 (5弦ルート, m7♭5のみ)
   s234:  { name: "2・3・4弦" },
   s123:  { name: "1・2・3弦" }
 };
-
-// 表示用の構成名: 5弦ルートの四音構成は実際に使う弦 (2・3・4・5弦) で表示する
-function formName(form, stringNo) {
-  if (form === "s2346" && Number(stringNo) === 5) return "2・3・4・5弦";
-  return FORMS[form].name;
-}
 
 // シェイプ定義: ルートフレット R からのオフセット { 弦番号: オフセット }
 const SHAPES = {
@@ -508,7 +503,7 @@ const SHAPES = {
       m7:   { 5:0, 4:2, 3:0, 2:1, 1:0 }
       // m7b5 はバレーフォームが無いため四音構成 (s2346グループ) で出題
     },
-    s2346: { // 5弦ルートの四音構成 (実際は2・3・4・5弦を使用)
+    s2345: { // 5弦ルートの四音構成
       m7b5: { 5:0, 4:1, 3:0, 2:1 }  // root, b5, b7, b3 (1・6弦ミュート)
     },
     s234: {
@@ -574,7 +569,7 @@ function chordName(q) {
   return NOTE_NAMES[q.root] + (suffix ? " " + suffix : "");
 }
 function questionLabel(q) {
-  return q.string + "弦ルート " + chordName(q) + "・" + formName(q.form, q.string);
+  return q.string + "弦ルート " + chordName(q) + "・" + FORMS[q.form].name;
 }
 
 /* ================= 設定 ================= */
@@ -716,11 +711,6 @@ function buildSettingsUI() {
 
 /* ---- コードタイプ × 構成 の二段リスト ---- */
 
-function childFormLabel(qual, form) {
-  if (form === "s2346" && qual === "m7b5") return "2・3・4・6弦 / 2・3・4・5弦";
-  return FORMS[form].name;
-}
-
 function buildQualFormsUI() {
   const wrap = document.getElementById("grp-qualforms");
   wrap.innerHTML = "";
@@ -770,7 +760,7 @@ function buildQualFormsUI() {
         refreshQualParent(qual);
       });
       lb.appendChild(cb);
-      lb.appendChild(document.createTextNode(childFormLabel(qual, form)));
+      lb.appendChild(document.createTextNode(FORMS[form].name));
       children.appendChild(lb);
     }
     block.appendChild(children);
@@ -851,7 +841,7 @@ function renderQuestionList() {
     g.className = "q-group";
     const title = document.createElement("div");
     title.className = "q-group-title";
-    title.textContent = s + "弦ルート ─ " + formName(form, s) + " (" + qs.length + "問)";
+    title.textContent = s + "弦ルート ─ " + FORMS[form].name + " (" + qs.length + "問)";
     g.appendChild(title);
     const chips = document.createElement("div");
     chips.className = "q-chips";
@@ -1193,7 +1183,7 @@ function nextQuestion() {
 
   const q = game.current;
   document.getElementById("game-qno").textContent = "No. " + game.qno;
-  document.getElementById("q-info").textContent = q.string + "弦ルート / " + formName(q.form, q.string);
+  document.getElementById("q-info").textContent = q.string + "弦ルート / " + FORMS[q.form].name;
   document.getElementById("q-chord").textContent = chordName(q);
 
   document.getElementById("countdown-area").style.display = "block";

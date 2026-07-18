@@ -118,6 +118,16 @@
     color: #fff; font-weight: 700; font-family: Menlo, Consolas, monospace; font-size: .95em;
   }
   .chk-group label .sub { color: var(--sub); font-size: .76em; }
+  /* コードタイプ二段リスト */
+  .qual-block { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .qual-block:last-child { border-bottom: none; padding-bottom: 2px; }
+  .qual-parent {
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer; user-select: none; width: fit-content;
+  }
+  .qual-parent .sym { color: #fff; font-weight: 700; font-family: Menlo, Consolas, monospace; }
+  .qual-parent .sub { color: var(--sub); font-size: .8rem; }
+  .qual-children { margin: 10px 0 0 26px; }
   .roots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
   .roots-grid label { justify-content: center; }
   .group-head { display: flex; align-items: center; gap: 10px; }
@@ -298,23 +308,13 @@
       </div>
 
       <div class="filter-group">
-        <div class="group-head"><span class="name">構成</span>
-          <span class="head-btns">
-            <button class="small" onclick="setGroup('forms', true)">全選択</button>
-            <button class="small" onclick="setGroup('forms', false)">全解除</button>
-          </span>
-        </div>
-        <div class="chk-group" id="grp-forms"></div>
-      </div>
-
-      <div class="filter-group">
         <div class="group-head"><span class="name">コードタイプ</span>
           <span class="head-btns">
-            <button class="small" onclick="setGroup('quals', true)">全選択</button>
-            <button class="small" onclick="setGroup('quals', false)">全解除</button>
+            <button class="small" onclick="setAllQualForms(true)">全選択</button>
+            <button class="small" onclick="setAllQualForms(false)">全解除</button>
           </span>
         </div>
-        <div class="chk-group" id="grp-quals"></div>
+        <div id="grp-qualforms"></div>
       </div>
 
       <div class="filter-group">
@@ -579,13 +579,22 @@ function questionLabel(q) {
 
 /* ================= 設定 ================= */
 
+// コードタイプごとに実際に存在する構成 (SHAPESから導出。矛盾する組み合わせは生まれない)
+function availableForms(qual) {
+  return Object.keys(FORMS).filter(f =>
+    [6, 5].some(s => SHAPES[s][f] && SHAPES[s][f][qual])
+  );
+}
+
 const settings = {
   questionSec: 10,
   autoNext: true,
   answerSec: 10,
   strings: { 6: true, 5: true },
-  forms: { full: true, s2346: true, s234: true, s123: true },
-  quals: { maj: true, min: true, dom7: true, maj7: true, m7: true, m7b5: true },
+  // コードタイプ × 構成 の二段構造
+  qualForms: Object.fromEntries(Object.keys(QUALITIES).map(q =>
+    [q, Object.fromEntries(availableForms(q).map(f => [f, true]))]
+  )),
   roots: Object.fromEntries(NOTE_NAMES.map((_, i) => [i, true]))
 };
 
@@ -600,9 +609,17 @@ function loadSettings() {
     if (typeof s.questionSec === "number") settings.questionSec = s.questionSec;
     if (typeof s.autoNext === "boolean") settings.autoNext = s.autoNext;
     if (typeof s.answerSec === "number") settings.answerSec = s.answerSec;
-    for (const g of ["strings", "forms", "quals", "roots"]) {
+    for (const g of ["strings", "roots"]) {
       if (s[g]) for (const k of Object.keys(settings[g])) {
         if (typeof s[g][k] === "boolean") settings[g][k] = s[g][k];
+      }
+    }
+    if (s.qualForms) {
+      for (const q of Object.keys(settings.qualForms)) {
+        if (!s.qualForms[q]) continue;
+        for (const f of Object.keys(settings.qualForms[q])) {
+          if (typeof s.qualForms[q][f] === "boolean") settings.qualForms[q][f] = s.qualForms[q][f];
+        }
       }
     }
   } catch (e) {}
@@ -612,12 +629,11 @@ function buildPool() {
   const pool = [];
   for (const sStr of Object.keys(settings.strings)) {
     if (!settings.strings[sStr]) continue;
-    for (const form of Object.keys(settings.forms)) {
-      if (!settings.forms[form]) continue;
-      for (const qual of Object.keys(settings.quals)) {
-        if (!settings.quals[qual]) continue;
-        // 定義の無い組み合わせはスキップ (例: 5弦ルートの四音構成)
-        if (!SHAPES[sStr] || !SHAPES[sStr][form] || !SHAPES[sStr][form][qual]) continue;
+    for (const qual of Object.keys(settings.qualForms)) {
+      for (const form of Object.keys(settings.qualForms[qual])) {
+        if (!settings.qualForms[qual][form]) continue;
+        // ルート弦によっては存在しない構成をスキップ (例: 5弦ルートの四音構成はm7♭5のみ)
+        if (!SHAPES[sStr][form] || !SHAPES[sStr][form][qual]) continue;
         for (const rStr of Object.keys(settings.roots)) {
           if (!settings.roots[rStr]) continue;
           pool.push({ string: Number(sStr), form, qual, root: Number(rStr) });
@@ -664,17 +680,7 @@ function buildSettingsUI() {
   gs.appendChild(makeCheckbox("strings", "6", "6弦ルート"));
   gs.appendChild(makeCheckbox("strings", "5", "5弦ルート"));
 
-  const gf = document.getElementById("grp-forms");
-  for (const k of Object.keys(FORMS)) {
-    const label = k === "s2346" ? "2・3・4・6弦(m7♭5の時だけ2・3・4・5弦)" : FORMS[k].name;
-    gf.appendChild(makeCheckbox("forms", k, label));
-  }
-
-  const gq = document.getElementById("grp-quals");
-  for (const k of Object.keys(QUALITIES)) {
-    const q = QUALITIES[k];
-    gq.appendChild(makeCheckbox("quals", k, q.name, q.sym));
-  }
+  buildQualFormsUI();
 
   const gr = document.getElementById("grp-roots");
   for (let i = 0; i < 12; i++) gr.appendChild(makeCheckbox("roots", String(i), NOTE_NAMES[i]));
@@ -705,6 +711,92 @@ function buildSettingsUI() {
     saveSettings();
   });
 
+  refreshPoolInfo();
+}
+
+/* ---- コードタイプ × 構成 の二段リスト ---- */
+
+function childFormLabel(qual, form) {
+  if (form === "s2346" && qual === "m7b5") return "2・3・4・6弦 / 2・3・4・5弦";
+  return FORMS[form].name;
+}
+
+function buildQualFormsUI() {
+  const wrap = document.getElementById("grp-qualforms");
+  wrap.innerHTML = "";
+  for (const qual of Object.keys(settings.qualForms)) {
+    const q = QUALITIES[qual];
+    const block = document.createElement("div");
+    block.className = "qual-block";
+
+    // 親: コードタイプ (子を一括切替)
+    const parent = document.createElement("label");
+    parent.className = "qual-parent";
+    const pcb = document.createElement("input");
+    pcb.type = "checkbox";
+    pcb.dataset.qual = qual;
+    pcb.addEventListener("change", () => {
+      for (const f of Object.keys(settings.qualForms[qual])) settings.qualForms[qual][f] = pcb.checked;
+      block.querySelectorAll("input[data-form]").forEach(cb => { cb.checked = pcb.checked; });
+      saveSettings();
+      refreshPoolInfo();
+      refreshQualParent(qual);
+    });
+    parent.appendChild(pcb);
+    const sym = document.createElement("span");
+    sym.className = "sym";
+    sym.textContent = q.sym;
+    parent.appendChild(sym);
+    const sub = document.createElement("span");
+    sub.className = "sub";
+    sub.textContent = q.name;
+    parent.appendChild(sub);
+    block.appendChild(parent);
+
+    // 子: このコードタイプに存在する構成のみ
+    const children = document.createElement("div");
+    children.className = "chk-group qual-children";
+    for (const form of Object.keys(settings.qualForms[qual])) {
+      const lb = document.createElement("label");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = settings.qualForms[qual][form];
+      cb.dataset.qual = qual;
+      cb.dataset.form = form;
+      cb.addEventListener("change", () => {
+        settings.qualForms[qual][form] = cb.checked;
+        saveSettings();
+        refreshPoolInfo();
+        refreshQualParent(qual);
+      });
+      lb.appendChild(cb);
+      lb.appendChild(document.createTextNode(childFormLabel(qual, form)));
+      children.appendChild(lb);
+    }
+    block.appendChild(children);
+    wrap.appendChild(block);
+    refreshQualParent(qual);
+  }
+}
+
+// 親チェックボックスの状態を子から算出 (全=checked / 一部=indeterminate)
+function refreshQualParent(qual) {
+  const pcb = document.querySelector('input[data-qual="' + qual + '"]:not([data-form])');
+  if (!pcb) return;
+  const vals = Object.values(settings.qualForms[qual]);
+  const on = vals.filter(Boolean).length;
+  pcb.checked = on === vals.length;
+  pcb.indeterminate = on > 0 && on < vals.length;
+}
+
+function setAllQualForms(value) {
+  for (const qual of Object.keys(settings.qualForms)) {
+    for (const f of Object.keys(settings.qualForms[qual])) settings.qualForms[qual][f] = value;
+    refreshQualParent(qual);
+  }
+  document.querySelectorAll("#grp-qualforms input[data-form]").forEach(cb => { cb.checked = value; });
+  for (const qual of Object.keys(settings.qualForms)) refreshQualParent(qual);
+  saveSettings();
   refreshPoolInfo();
 }
 

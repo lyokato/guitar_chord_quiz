@@ -428,6 +428,29 @@
 /* ================= コードデータ ================= */
 
 const NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const FLAT_NAMES = ["C","D♭","D","E♭","E","F","G♭","G","A♭","A","B♭","B"];
+
+// ルート音の選択肢: 異名同音 (C#とD♭など) は同じポジションだが、
+// 呼び名への反応訓練のため別問題として扱う
+const ROOT_OPTIONS = [
+  { key: "C",  pc: 0,  label: "C"  },
+  { key: "C#", pc: 1,  label: "C#" },
+  { key: "Db", pc: 1,  label: "D♭" },
+  { key: "D",  pc: 2,  label: "D"  },
+  { key: "D#", pc: 3,  label: "D#" },
+  { key: "Eb", pc: 3,  label: "E♭" },
+  { key: "E",  pc: 4,  label: "E"  },
+  { key: "F",  pc: 5,  label: "F"  },
+  { key: "F#", pc: 6,  label: "F#" },
+  { key: "Gb", pc: 6,  label: "G♭" },
+  { key: "G",  pc: 7,  label: "G"  },
+  { key: "G#", pc: 8,  label: "G#" },
+  { key: "Ab", pc: 8,  label: "A♭" },
+  { key: "A",  pc: 9,  label: "A"  },
+  { key: "A#", pc: 10, label: "A#" },
+  { key: "Bb", pc: 10, label: "B♭" },
+  { key: "B",  pc: 11, label: "B"  }
+];
 
 // 開放弦: 弦番号 → { pc: ピッチクラス, midi }
 const OPEN_STRINGS = {
@@ -581,7 +604,8 @@ function computeVoicing(q) {
 
 function chordName(q) {
   const suffix = QUALITIES[q.qual].suffix;
-  return NOTE_NAMES[q.root] + (suffix ? " " + suffix : "");
+  const rootName = q.rootName || NOTE_NAMES[q.root];
+  return rootName + (suffix ? " " + suffix : "");
 }
 function questionLabel(q) {
   return q.string + "弦ルート " + chordName(q) + "・" + FORMS[q.form].name;
@@ -605,7 +629,7 @@ const settings = {
   qualForms: Object.fromEntries(Object.keys(QUALITIES).map(q =>
     [q, Object.fromEntries(availableForms(q).map(f => [f, true]))]
   )),
-  roots: Object.fromEntries(NOTE_NAMES.map((_, i) => [i, true]))
+  roots: Object.fromEntries(ROOT_OPTIONS.map(o => [o.key, true]))
 };
 
 function saveSettings() {
@@ -644,9 +668,9 @@ function buildPool() {
         if (!settings.qualForms[qual][form]) continue;
         // ルート弦によっては存在しない構成をスキップ (例: 5弦ルートの四音構成はm7♭5のみ)
         if (!SHAPES[sStr][form] || !SHAPES[sStr][form][qual]) continue;
-        for (const rStr of Object.keys(settings.roots)) {
-          if (!settings.roots[rStr]) continue;
-          pool.push({ string: Number(sStr), form, qual, root: Number(rStr) });
+        for (const opt of ROOT_OPTIONS) {
+          if (!settings.roots[opt.key]) continue;
+          pool.push({ string: Number(sStr), form, qual, root: opt.pc, rootName: opt.label });
         }
       }
     }
@@ -693,7 +717,7 @@ function buildSettingsUI() {
   buildQualFormsUI();
 
   const gr = document.getElementById("grp-roots");
-  for (let i = 0; i < 12; i++) gr.appendChild(makeCheckbox("roots", String(i), NOTE_NAMES[i]));
+  for (const opt of ROOT_OPTIONS) gr.appendChild(makeCheckbox("roots", opt.key, opt.label));
 
   const qSec = document.getElementById("set-question-sec");
   const aSec = document.getElementById("set-answer-sec");
@@ -900,6 +924,9 @@ const FB = {
 
 function renderFretboard(container, q) {
   const { positions, refPos, barre } = computeVoicing(q);
+  // ♭系の呼び名で出題された場合は構成音もフラット表記にする
+  const useFlat = !!(q.rootName && q.rootName.includes("♭"));
+  const noteLabel = pc => useFlat ? FLAT_NAMES[pc] : NOTE_NAMES[pc];
   const width = 960;
   const height = FB.top + FB.stringGap * 5 + FB.bottom;
   const innerW = width - FB.left - FB.right;
@@ -997,7 +1024,7 @@ function renderFretboard(container, q) {
     el("text", {
       x: fretCenterX(p.fret), y: yOf(p.string) + 4.5, fill: "#fff",
       "font-size": 11.5, "font-weight": "bold", "text-anchor": "middle"
-    }, NOTE_NAMES[p.pc]);
+    }, noteLabel(p.pc));
   }
 
   container.innerHTML = "";
@@ -1187,7 +1214,8 @@ function pickQuestion() {
   return q;
 }
 function sameQ(a, b) {
-  return a.string === b.string && a.form === b.form && a.qual === b.qual && a.root === b.root;
+  return a.string === b.string && a.form === b.form && a.qual === b.qual &&
+         a.root === b.root && a.rootName === b.rootName;
 }
 
 function nextQuestion() {

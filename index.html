@@ -302,13 +302,13 @@
     </div>
 
     <div class="panel">
-      <h2>出題フィルター</h2>
+      <h2>レッスン用一括設定</h2>
+      <div class="preset-btns" id="lesson-presets"></div>
+      <p class="note">押すと、コードタイプとルートの弦の選択がそのレッスン内容に切り替わります(ルートの音は変更しません)。</p>
+    </div>
 
-      <div class="filter-group">
-        <div class="group-head"><span class="name">レッスン用一括設定</span></div>
-        <div class="preset-btns" id="lesson-presets"></div>
-        <p class="note">押すと、コードタイプの選択がそのレッスン内容だけに切り替わります(ルートの設定は変更しません)。</p>
-      </div>
+    <div class="panel">
+      <h2>出題フィルター</h2>
 
       <div class="filter-group">
         <div class="group-head"><span class="name">コードタイプ</span>
@@ -677,7 +677,7 @@ const settings = {
   questionSec: 10,
   autoNext: true,
   answerSec: 10,
-  strings: { "6": true, "5": true, "5L": true },
+  strings: { "6": true, "5": true, "5L": false }, // 左展開は応用のためデフォルトOFF
   // コードタイプ × 構成 の二段構造
   qualForms: Object.fromEntries(Object.keys(QUALITIES).map(q =>
     [q, Object.fromEntries(availableForms(q).map(f => [f, true]))]
@@ -808,10 +808,12 @@ function buildSettingsUI() {
 
 /* ---- レッスン用一括設定 (プリセット) ----
    追加するときはこのオブジェクトにエントリを足すだけでボタンが自動生成される。
+   strings:   有効にするルートモードキーの配列 (記載の無いモードはOFF)
    qualForms: コードタイプ → 有効にする構成キーの配列 (記載の無いタイプ・構成は全てOFF) */
 
 const LESSON_PRESETS = {
   "Phase 9": {
+    strings: ["6", "5"], // 左展開は含めない
     qualForms: {
       dom7: ["s2346", "s234"],
       maj7: ["s2346", "s234"],
@@ -824,6 +826,14 @@ const LESSON_PRESETS = {
 function applyLessonPreset(name) {
   const preset = LESSON_PRESETS[name];
   if (!preset) return;
+  if (preset.strings) {
+    for (const mode of Object.keys(settings.strings)) {
+      settings.strings[mode] = preset.strings.includes(mode);
+    }
+    document.querySelectorAll('input[data-group="strings"]').forEach(cb => {
+      cb.checked = settings.strings[cb.dataset.key];
+    });
+  }
   for (const qual of Object.keys(settings.qualForms)) {
     const enabled = preset.qualForms[qual] || [];
     for (const f of Object.keys(settings.qualForms[qual])) {

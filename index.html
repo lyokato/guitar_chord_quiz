@@ -812,6 +812,24 @@ function buildSettingsUI() {
    qualForms: コードタイプ → 有効にする構成キーの配列 (記載の無いタイプ・構成は全てOFF) */
 
 const LESSON_PRESETS = {
+  "Phase 3": {
+    strings: ["6"],
+    qualForms: {
+      maj:  ["full"],
+      min:  ["full"],
+      dom7: ["full"],
+      m7:   ["full"]
+    }
+  },
+  "Phase 4": { // Phase 3の内容を5弦ルートで
+    strings: ["5"],
+    qualForms: {
+      maj:  ["full"],
+      min:  ["full"],
+      dom7: ["full"],
+      m7:   ["full"]
+    }
+  },
   "Phase 9": {
     strings: ["6", "5"], // 左展開は含めない
     qualForms: {

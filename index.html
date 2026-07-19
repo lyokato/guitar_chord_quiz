@@ -720,11 +720,12 @@ const LOW_CHORDS = {
 
 // オンコード: 固定グリップ (ルート弦・ルート音の設定に関わらず個別選択で出題)
 // root はコードのルート音 (度数表示の基準)
+// ルール: 5弦と6弦はどちらか一方のみ使用し、使わない方はミュート表示
 const ON_CHORDS = [
   { id: "Dm7/G", label: "Dm7/G", root: 2, shape: { 6:3, 4:0, 3:2, 2:1, 1:1 } },
   { id: "D/F#",  label: "D/F#",  root: 2, shape: { 6:2, 4:0, 3:2, 2:3, 1:2 } },
-  { id: "Am7/G", label: "Am7/G", root: 9, shape: { 6:3, 5:0, 4:2, 3:0, 2:1, 1:0 } },
-  { id: "C/E",   label: "C/E",   root: 0, shape: { 6:0, 5:3, 4:2, 3:0, 2:1, 1:0 } },
+  { id: "Am7/G", label: "Am7/G", root: 9, shape: { 6:3, 4:2, 3:2, 2:1, 1:0 } },
+  { id: "C/E",   label: "C/E",   root: 0, shape: { 6:0, 4:2, 3:0, 2:1, 1:0 } },
   { id: "G/B",   label: "G/B",   root: 7, shape: { 5:2, 4:0, 3:0, 2:0, 1:3 } },
   { id: "G/F",   label: "G/F",   root: 7, shape: { 6:1, 4:0, 3:0, 2:0, 1:3 } }
 ];
@@ -783,7 +784,8 @@ function computeVoicing(q) {
   }
   if (q.form === "on") {
     const c = ON_CHORDS.find(o => o.id === q.onId);
-    return { positions: fixedGripPositions(c.shape, q.root), refPos: null, barre: null };
+    const mutes = c.shape[6] !== undefined ? [5] : [6]; // 使わない方の低音弦をミュート表示
+    return { positions: fixedGripPositions(c.shape, q.root), refPos: null, barre: null, mutes };
   }
   const mode = q.mode || String(q.string);
   const stringNo = ROOT_MODES[mode].stringNo;
@@ -1369,7 +1371,7 @@ function degreeLabel(q, pc) {
 }
 
 function renderFretboard(container, q) {
-  const { positions, refPos, barre } = computeVoicing(q);
+  const { positions, refPos, barre, mutes } = computeVoicing(q);
   // ♭系の呼び名で出題された場合は構成音もフラット表記にする
   const useFlat = !!(q.rootName && q.rootName.includes("♭"));
   const noteLabel = pc => settings.boardLabel === "degree"
@@ -1448,6 +1450,14 @@ function renderFretboard(container, q) {
     });
     // 指先の丸み
     el("circle", { cx: bx, cy: yTop + 11, r: 13, fill: "#e0ac69", "fill-opacity": 0.45 });
+  }
+
+  // ミュート弦 (×印をナット左に表示)
+  for (const s of (mutes || [])) {
+    el("text", {
+      x: nutX - 22, y: yOf(s) + 6, fill: "var(--sub)",
+      "font-size": 18, "font-weight": "bold", "text-anchor": "middle"
+    }, "×");
   }
 
   // ルート基準位置(弾かない)

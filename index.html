@@ -326,8 +326,17 @@
           </span>
         </div>
         <div id="grp-qualforms"></div>
-        <div class="divider"></div>
-        <p class="note">※ ローコードはルート弦の設定に関わらず登場するようになります。</p>
+      </div>
+
+      <div class="filter-group">
+        <div class="group-head"><span class="name">ローコード</span>
+          <span class="head-btns">
+            <button class="small" onclick="setAllLowChords(true)">全選択</button>
+            <button class="small" onclick="setAllLowChords(false)">全解除</button>
+          </span>
+        </div>
+        <div class="chk-group" id="grp-lowchords"></div>
+        <p class="note">※ ローコードはルート弦・ルート音の設定に関わらず、ここで選択したものが出題されます。</p>
       </div>
 
       <div class="filter-group">
@@ -649,6 +658,17 @@ const LOW_CHORDS = {
   }
 };
 
+// ローコードのフラットな一覧 (設定UI・プリセット用)。label例: "C", "Am", "D7", "CM7"
+const LOW_CHORD_LIST = [];
+for (const qual of Object.keys(LOW_CHORDS)) {
+  for (const rootKey of Object.keys(LOW_CHORDS[qual])) {
+    LOW_CHORD_LIST.push({
+      id: qual + "|" + rootKey, qual, rootKey,
+      label: rootKey + QUALITIES[qual].suffix
+    });
+  }
+}
+
 // ルート音 → ルート弦上のフレット
 // - 1フレットルート(6弦F, 5弦B♭)はバレーならそのまま、
 //   利用弦を限定したパターンでは手型が作りにくいため1オクターブ上(13フレット)へずらす
@@ -729,11 +749,10 @@ function questionLabel(q) {
 /* ================= 設定 ================= */
 
 // コードタイプごとに実際に存在する構成 (SHAPESから導出。矛盾する組み合わせは生まれない)
+// ローコードは専用の個別選択 (settings.lowChords) で扱うため、二段リストには含めない
 function availableForms(qual) {
   return Object.keys(FORMS).filter(f =>
-    f === "open"
-      ? !!LOW_CHORDS[qual]
-      : Object.keys(ROOT_MODES).some(m => SHAPES[m][f] && SHAPES[m][f][qual])
+    Object.keys(ROOT_MODES).some(m => SHAPES[m][f] && SHAPES[m][f][qual])
   );
 }
 
@@ -747,6 +766,7 @@ const settings = {
   qualForms: Object.fromEntries(Object.keys(QUALITIES).map(q =>
     [q, Object.fromEntries(availableForms(q).map(f => [f, true]))]
   )),
+  lowChords: Object.fromEntries(LOW_CHORD_LIST.map(c => [c.id, true])),
   roots: Object.fromEntries(ROOT_OPTIONS.map(o => [o.key, true]))
 };
 
@@ -775,19 +795,21 @@ function loadSettings() {
         }
       }
     }
+    if (s.lowChords) {
+      for (const id of Object.keys(settings.lowChords)) {
+        if (typeof s.lowChords[id] === "boolean") settings.lowChords[id] = s.lowChords[id];
+      }
+    }
   } catch (e) {}
 }
 
 function buildPool() {
   const pool = [];
-  // ローコード: ルート弦の設定に関わらず追加 (音のフィルターは適用)
-  for (const qual of Object.keys(settings.qualForms)) {
-    if (!settings.qualForms[qual].open) continue;
-    for (const rootKey of Object.keys(LOW_CHORDS[qual] || {})) {
-      if (!settings.roots[rootKey]) continue;
-      const opt = ROOT_OPTIONS.find(o => o.key === rootKey);
-      pool.push({ mode: "open", string: 0, form: "open", qual, root: opt.pc, rootName: opt.label, rootKey });
-    }
+  // ローコード: ルート弦・ルート音の設定に関わらず、個別選択されたものを追加
+  for (const c of LOW_CHORD_LIST) {
+    if (!settings.lowChords[c.id]) continue;
+    const opt = ROOT_OPTIONS.find(o => o.key === c.rootKey);
+    pool.push({ mode: "open", string: 0, form: "open", qual: c.qual, root: opt.pc, rootName: opt.label, rootKey: c.rootKey });
   }
   for (const mode of Object.keys(ROOT_MODES)) {
     if (!settings.strings[mode]) continue;
@@ -855,6 +877,7 @@ function buildSettingsUI() {
 
   buildLessonPresetButtons();
   buildQualFormsUI();
+  buildLowChordsUI();
 
   const gr = document.getElementById("grp-roots");
   for (const opt of ROOT_OPTIONS) gr.appendChild(makeCheckbox("roots", opt.key, opt.label));
@@ -890,10 +913,15 @@ function buildSettingsUI() {
 
 /* ---- レッスン用一括設定 (プリセット) ----
    追加するときはこのオブジェクトにエントリを足すだけでボタンが自動生成される。
-   strings:   有効にするルートモードキーの配列 (記載の無いモードはOFF)
-   qualForms: コードタイプ → 有効にする構成キーの配列 (記載の無いタイプ・構成は全てOFF) */
+   strings:   有効にするルートモードキーの配列 (省略時は変更しない)
+   qualForms: コードタイプ → 有効にする構成キーの配列 (記載の無いタイプ・構成は全てOFF)
+   lowChords: 有効にするローコードのラベル配列 (省略時は全てOFF) */
 
 const LESSON_PRESETS = {
+  "Phase 2": {
+    lowChords: ["Em", "G", "C", "Am", "D7", "Dm"],
+    qualForms: {}
+  },
   "Phase 3": {
     strings: ["6"],
     qualForms: {
@@ -935,7 +963,7 @@ function applyLessonPreset(name) {
     });
   }
   for (const qual of Object.keys(settings.qualForms)) {
-    const enabled = preset.qualForms[qual] || [];
+    const enabled = (preset.qualForms && preset.qualForms[qual]) || [];
     for (const f of Object.keys(settings.qualForms[qual])) {
       settings.qualForms[qual][f] = enabled.includes(f);
     }
@@ -944,6 +972,12 @@ function applyLessonPreset(name) {
     cb.checked = settings.qualForms[cb.dataset.qual][cb.dataset.form];
   });
   for (const qual of Object.keys(settings.qualForms)) refreshQualParent(qual);
+  // ローコード: 記載されたものだけON
+  const lows = preset.lowChords || [];
+  for (const c of LOW_CHORD_LIST) settings.lowChords[c.id] = lows.includes(c.label);
+  document.querySelectorAll("#grp-lowchords input").forEach(cb => {
+    cb.checked = settings.lowChords[cb.dataset.lowchord];
+  });
   saveSettings();
   refreshPoolInfo();
 }
@@ -958,6 +992,38 @@ function buildLessonPresetButtons() {
     btn.addEventListener("click", () => applyLessonPreset(name));
     wrap.appendChild(btn);
   }
+}
+
+/* ---- ローコードの個別選択 ---- */
+
+function buildLowChordsUI() {
+  const wrap = document.getElementById("grp-lowchords");
+  wrap.innerHTML = "";
+  for (const c of LOW_CHORD_LIST) {
+    const lb = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = settings.lowChords[c.id];
+    cb.dataset.lowchord = c.id;
+    cb.addEventListener("change", () => {
+      settings.lowChords[c.id] = cb.checked;
+      saveSettings();
+      refreshPoolInfo();
+    });
+    lb.appendChild(cb);
+    const sym = document.createElement("span");
+    sym.className = "sym";
+    sym.textContent = c.label;
+    lb.appendChild(sym);
+    wrap.appendChild(lb);
+  }
+}
+
+function setAllLowChords(value) {
+  for (const c of LOW_CHORD_LIST) settings.lowChords[c.id] = value;
+  document.querySelectorAll("#grp-lowchords input").forEach(cb => { cb.checked = value; });
+  saveSettings();
+  refreshPoolInfo();
 }
 
 /* ---- コードタイプ × 構成 の二段リスト ---- */

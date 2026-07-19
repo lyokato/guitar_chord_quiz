@@ -128,6 +128,8 @@
   .qual-parent .sym { color: #fff; font-weight: 700; font-family: Menlo, Consolas, monospace; }
   .qual-parent .sub { color: var(--sub); font-size: .8rem; }
   .qual-children { margin: 10px 0 0 26px; }
+  .preset-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .preset-btns button { border: 1px solid var(--line); background: var(--panel2); font-weight: 700; }
   .roots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
   .roots-grid label { justify-content: center; }
   .group-head { display: flex; align-items: center; gap: 10px; }
@@ -301,6 +303,12 @@
 
     <div class="panel">
       <h2>出題フィルター</h2>
+
+      <div class="filter-group">
+        <div class="group-head"><span class="name">レッスン用一括設定</span></div>
+        <div class="preset-btns" id="lesson-presets"></div>
+        <p class="note">押すと、コードタイプの選択がそのレッスン内容だけに切り替わります(ルートの設定は変更しません)。</p>
+      </div>
 
       <div class="filter-group">
         <div class="group-head"><span class="name">コードタイプ</span>
@@ -734,6 +742,7 @@ function buildSettingsUI() {
   gs.appendChild(makeCheckbox("strings", "6", "6弦ルート"));
   gs.appendChild(makeCheckbox("strings", "5", "5弦ルート"));
 
+  buildLessonPresetButtons();
   buildQualFormsUI();
 
   const gr = document.getElementById("grp-roots");
@@ -766,6 +775,50 @@ function buildSettingsUI() {
   });
 
   refreshPoolInfo();
+}
+
+/* ---- レッスン用一括設定 (プリセット) ----
+   追加するときはこのオブジェクトにエントリを足すだけでボタンが自動生成される。
+   qualForms: コードタイプ → 有効にする構成キーの配列 (記載の無いタイプ・構成は全てOFF) */
+
+const LESSON_PRESETS = {
+  "Phase 9": {
+    qualForms: {
+      dom7: ["s2346", "s234"],
+      maj7: ["s2346", "s234"],
+      m7:   ["s2346", "s234"],
+      m7b5: ["s2346", "s2345", "s234"]
+    }
+  }
+};
+
+function applyLessonPreset(name) {
+  const preset = LESSON_PRESETS[name];
+  if (!preset) return;
+  for (const qual of Object.keys(settings.qualForms)) {
+    const enabled = preset.qualForms[qual] || [];
+    for (const f of Object.keys(settings.qualForms[qual])) {
+      settings.qualForms[qual][f] = enabled.includes(f);
+    }
+  }
+  document.querySelectorAll("#grp-qualforms input[data-form]").forEach(cb => {
+    cb.checked = settings.qualForms[cb.dataset.qual][cb.dataset.form];
+  });
+  for (const qual of Object.keys(settings.qualForms)) refreshQualParent(qual);
+  saveSettings();
+  refreshPoolInfo();
+}
+
+function buildLessonPresetButtons() {
+  const wrap = document.getElementById("lesson-presets");
+  wrap.innerHTML = "";
+  for (const name of Object.keys(LESSON_PRESETS)) {
+    const btn = document.createElement("button");
+    btn.className = "small";
+    btn.textContent = name;
+    btn.addEventListener("click", () => applyLessonPreset(name));
+    wrap.appendChild(btn);
+  }
 }
 
 /* ---- コードタイプ × 構成 の二段リスト ---- */

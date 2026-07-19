@@ -86,9 +86,10 @@
   /* ---- settings ---- */
   .navbar {
     position: sticky; top: 0; z-index: 20;
-    display: flex; align-items: center; gap: 10px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
     background: var(--bg); padding: 10px 0; margin-bottom: 10px;
   }
+  .navbar .icon-btn { width: 60px; height: 60px; }
   .nav-title { font-size: 1.3rem; font-weight: 700; letter-spacing: .08em; }
   .panel { background: var(--panel); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
   .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 8px 0; }
@@ -264,7 +265,7 @@
     .icon-btn.timer { width: 50px; height: 50px; }
     #countdown-num { font-size: 1.3rem; }
     .control-line { margin-top: 8px; min-height: 56px; }
-    .next-btn, #game-header .icon-btn { width: 52px; height: 52px; }
+    .next-btn, #game-header .icon-btn, .navbar .icon-btn { width: 52px; height: 52px; }
     #fretboard-wrap { padding: 8px 8px 8px; }
     #answer-area { margin-top: 10px; }
   }
@@ -286,10 +287,10 @@
   <!-- ==== 設定 ==== -->
   <div id="screen-settings" class="screen">
     <div class="navbar">
-      <button class="icon-btn nav sm" onclick="navBack()" aria-label="戻る" title="戻る">
-        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
       <span class="nav-title">SETTINGS</span>
+      <button class="icon-btn nav" onclick="navBack()" aria-label="閉じる" title="閉じる">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </button>
     </div>
 
     <div class="panel">

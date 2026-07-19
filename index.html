@@ -318,6 +318,7 @@
           </span>
         </div>
         <div id="grp-qualforms"></div>
+        <p class="note">※ ローコードはルート弦の設定に関わらず登場するようになります。</p>
       </div>
 
       <div class="filter-group">
@@ -491,6 +492,7 @@ const QUALITIES = {
 };
 
 const FORMS = {
+  open:  { name: "ローコード" }, // 固定グリップ (ルート弦設定の対象外)
   full:  { name: "バレー" },
   s2346: { name: "2・3・4・6弦" }, // 四音構成 (6弦ルート)
   s2345: { name: "2・3・4・5弦" }, // 四音構成 (5弦ルート)
@@ -603,6 +605,41 @@ const SHAPES = {
   }
 };
 
+// ローコード: 固定グリップ (タイプ → ルート名 → {弦: フレット})
+// ルート弦の設定に関わらず出題される
+const LOW_CHORDS = {
+  maj: {
+    C: { 5:3, 4:2, 3:0, 2:1, 1:0 },
+    A: { 5:0, 4:2, 3:2, 2:2, 1:0 },
+    G: { 6:3, 5:2, 4:0, 3:0, 2:0, 1:3 },
+    E: { 6:0, 5:2, 4:2, 3:1, 2:0, 1:0 },
+    D: { 4:0, 3:2, 2:3, 1:2 }
+  },
+  min: {
+    A: { 5:0, 4:2, 3:2, 2:1, 1:0 },
+    E: { 6:0, 5:2, 4:2, 3:0, 2:0, 1:0 },
+    D: { 4:0, 3:2, 2:3, 1:1 }
+  },
+  dom7: {
+    E: { 6:0, 5:2, 4:0, 3:1, 2:0, 1:0 },
+    A: { 5:0, 4:2, 3:0, 2:2, 1:0 },
+    D: { 4:0, 3:2, 2:1, 1:2 },
+    G: { 6:3, 5:2, 4:0, 3:0, 2:0, 1:1 },
+    C: { 5:3, 4:2, 3:3, 2:1, 1:0 },
+    B: { 5:2, 4:1, 3:2, 2:0, 1:2 }
+  },
+  m7: {
+    E: { 6:0, 5:2, 4:0, 3:0, 2:0, 1:0 },
+    A: { 5:0, 4:2, 3:0, 2:1, 1:0 },
+    D: { 4:0, 3:2, 2:1, 1:1 }
+  },
+  maj7: {
+    C: { 5:3, 4:2, 3:0, 2:0, 1:0 },
+    A: { 5:0, 4:2, 3:1, 2:2, 1:0 },
+    D: { 4:0, 3:2, 2:2, 1:2 }
+  }
+};
+
 // ルート音 → ルート弦上のフレット
 // - 1フレットルート(6弦F, 5弦B♭)はバレーならそのまま、
 //   利用弦を限定したパターンでは手型が作りにくいため1オクターブ上(13フレット)へずらす
@@ -623,6 +660,21 @@ function rootFret(rootPc, mode, form) {
 // 問題オブジェクトからボイシングを計算
 // 戻り値: { positions: [{string, fret, pc, midi, isRoot}], refPos: {string, fret} | null }
 function computeVoicing(q) {
+  // ローコード: 固定グリップをそのまま使う
+  if (q.form === "open") {
+    const shape = LOW_CHORDS[q.qual][q.rootKey];
+    const positions = [];
+    for (const [sStr, fret] of Object.entries(shape)) {
+      const s = Number(sStr);
+      const pc = (OPEN_STRINGS[s].pc + fret) % 12;
+      positions.push({
+        string: s, fret, pc,
+        midi: OPEN_STRINGS[s].midi + fret,
+        isRoot: pc === q.root
+      });
+    }
+    return { positions, refPos: null, barre: null };
+  }
   const mode = q.mode || String(q.string);
   const stringNo = ROOT_MODES[mode].stringNo;
   const R = rootFret(q.root, mode, q.form);
@@ -660,6 +712,7 @@ function chordName(q) {
   return rootName + (suffix ? " " + suffix : "");
 }
 function questionLabel(q) {
+  if (q.form === "open") return "ローコード " + chordName(q);
   const mode = q.mode || String(q.string);
   return ROOT_MODES[mode].label + " " + chordName(q) + "・" + FORMS[q.form].name;
 }
@@ -669,7 +722,9 @@ function questionLabel(q) {
 // コードタイプごとに実際に存在する構成 (SHAPESから導出。矛盾する組み合わせは生まれない)
 function availableForms(qual) {
   return Object.keys(FORMS).filter(f =>
-    Object.keys(ROOT_MODES).some(m => SHAPES[m][f] && SHAPES[m][f][qual])
+    f === "open"
+      ? !!LOW_CHORDS[qual]
+      : Object.keys(ROOT_MODES).some(m => SHAPES[m][f] && SHAPES[m][f][qual])
   );
 }
 
@@ -714,6 +769,15 @@ function loadSettings() {
 
 function buildPool() {
   const pool = [];
+  // ローコード: ルート弦の設定に関わらず追加 (音のフィルターは適用)
+  for (const qual of Object.keys(settings.qualForms)) {
+    if (!settings.qualForms[qual].open) continue;
+    for (const rootKey of Object.keys(LOW_CHORDS[qual] || {})) {
+      if (!settings.roots[rootKey]) continue;
+      const opt = ROOT_OPTIONS.find(o => o.key === rootKey);
+      pool.push({ mode: "open", string: 0, form: "open", qual, root: opt.pc, rootName: opt.label, rootKey });
+    }
+  }
   for (const mode of Object.keys(ROOT_MODES)) {
     if (!settings.strings[mode]) continue;
     for (const qual of Object.keys(settings.qualForms)) {
@@ -1010,7 +1074,7 @@ function renderQuestionList() {
     g.className = "q-group";
     const title = document.createElement("div");
     title.className = "q-group-title";
-    title.textContent = ROOT_MODES[mode].label + " ─ " + FORMS[form].name + " (" + qs.length + "問)";
+    title.textContent = (mode === "open" ? "ローコード" : ROOT_MODES[mode].label + " ─ " + FORMS[form].name) + " (" + qs.length + "問)";
     g.appendChild(title);
     const chips = document.createElement("div");
     chips.className = "q-chips";
@@ -1177,6 +1241,11 @@ function updateEdgeFades(board) {
 // 表示領域が足りない場合、ルート音ができるだけ中央に来るようスクロール位置を調整
 function centerOnRoot(board, q) {
   requestAnimationFrame(() => {
+    if (q.form === "open") { // ローコードはネック側を表示
+      board.scrollLeft = 0;
+      updateEdgeFades(board);
+      return;
+    }
     const svg = board.querySelector("svg");
     if (svg && board.scrollWidth > board.clientWidth + 4) {
       const width = 960;
@@ -1356,7 +1425,9 @@ function nextQuestion() {
 
   const q = game.current;
   document.getElementById("game-qno").textContent = "No. " + game.qno;
-  document.getElementById("q-info").textContent = ROOT_MODES[q.mode].label + " / " + FORMS[q.form].name;
+  document.getElementById("q-info").textContent = q.form === "open"
+    ? "ローコード"
+    : ROOT_MODES[q.mode].label + " / " + FORMS[q.form].name;
   document.getElementById("q-chord").textContent = chordName(q);
 
   document.getElementById("countdown-area").style.display = "block";

@@ -312,7 +312,7 @@
     <div class="panel">
       <h2>レッスン用一括設定</h2>
       <div class="preset-btns" id="lesson-presets"></div>
-      <p class="note">押すと、コードタイプとルートの弦の選択がそのレッスン内容に切り替わります(ルートの音は変更しません)。</p>
+      <p class="note">押すと、出題フィルターの内容がそのレッスン内容に切り替わります。</p>
     </div>
 
     <div class="panel">
@@ -925,10 +925,18 @@ function buildSettingsUI() {
 /* ---- レッスン用一括設定 (プリセット) ----
    追加するときはこのオブジェクトにエントリを足すだけでボタンが自動生成される。
    strings:   有効にするルートモードキーの配列 (省略時は変更しない)
+   roots:     有効にするルート音キーの配列 (省略時は変更しない)
    qualForms: コードタイプ → 有効にする構成キーの配列 (記載の無いタイプ・構成は全てOFF)
    lowChords: 有効にするローコードのラベル配列 (省略時は全てOFF) */
 
 const LESSON_PRESETS = {
+  "Phase 1": {
+    strings: ["6", "5"],
+    roots: ["C", "D", "E", "F", "G", "A", "B"], // ♯・♭無しのみ
+    qualForms: {
+      p5: ["power"]
+    }
+  },
   "Phase 2": {
     lowChords: ["Em", "G", "C", "Am", "D7", "Dm"],
     qualForms: {}
@@ -971,6 +979,14 @@ function applyLessonPreset(name) {
     }
     document.querySelectorAll('input[data-group="strings"]').forEach(cb => {
       cb.checked = settings.strings[cb.dataset.key];
+    });
+  }
+  if (preset.roots) {
+    for (const key of Object.keys(settings.roots)) {
+      settings.roots[key] = preset.roots.includes(key);
+    }
+    document.querySelectorAll('input[data-group="roots"]').forEach(cb => {
+      cb.checked = settings.roots[cb.dataset.key];
     });
   }
   for (const qual of Object.keys(settings.qualForms)) {

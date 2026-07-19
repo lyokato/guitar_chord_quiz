@@ -685,7 +685,7 @@ function rootFret(rootPc, mode, form) {
   const stringNo = ROOT_MODES[mode].stringNo;
   const open = OPEN_STRINGS[stringNo].pc;
   let r = ((rootPc - open) % 12 + 12) % 12;
-  if (r === 0) r = 12;
+  if (r === 0 && form !== "power") r = 12; // パワーコードは開放弦ルートをそのまま使う
   if (mode === "5L") {
     if (r < 4) r += 12;
   } else if (r === 1 && !NO_SHIFT_FORMS.has(form)) {

@@ -128,8 +128,18 @@
   .qual-parent .sym { color: #fff; font-weight: 700; font-family: Menlo, Consolas, monospace; }
   .qual-parent .sub { color: var(--sub); font-size: .8rem; }
   .qual-children { margin: 10px 0 0 26px; }
-  .preset-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-  .preset-btns button { border: 1px solid var(--line); background: var(--panel2); font-weight: 700; }
+  .preset-btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+  .preset-btns button {
+    background: rgba(79, 195, 247, .14);
+    border: 1.5px solid var(--accent);
+    color: var(--accent);
+    font-weight: 700;
+    padding: 9px 18px;
+    font-size: .95rem;
+    letter-spacing: .03em;
+  }
+  .preset-btns button:hover { background: rgba(79, 195, 247, .28); filter: none; }
+  .preset-btns button:active { background: var(--accent); color: #0b0e12; }
   .roots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
   .roots-grid label { justify-content: center; }
   .group-head { display: flex; align-items: center; gap: 10px; }

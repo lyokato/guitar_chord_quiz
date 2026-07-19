@@ -98,7 +98,7 @@
     border: 1px solid var(--line); background: var(--panel2);
     color: var(--text); font-size: 1rem; text-align: center;
   }
-  input[type="checkbox"] { transform: scale(1.15); accent-color: var(--accent); margin-right: 2px; }
+  input[type="checkbox"], input[type="radio"] { transform: scale(1.15); accent-color: var(--accent); margin-right: 2px; }
   .filter-group {
     background: rgba(255,255,255,.03);
     border: 1px solid var(--line);
@@ -299,6 +299,14 @@
         <input type="number" id="set-answer-sec" min="1" max="60" value="10" inputmode="numeric" pattern="[0-9]*"> 秒
       </div>
       <p class="note">自動送りをオフにすると、答え画面に「次へ」ボタンが表示されます。</p>
+    </div>
+
+    <div class="panel">
+      <h2>指板表示</h2>
+      <div class="chk-group">
+        <label><input type="radio" name="board-label" value="degree"> 度数(ルート=R)</label>
+        <label><input type="radio" name="board-label" value="note"> 音名</label>
+      </div>
     </div>
 
     <div class="panel">
@@ -733,6 +741,7 @@ const settings = {
   questionSec: 10,
   autoNext: true,
   answerSec: 10,
+  boardLabel: "degree", // 指板の丸の中: "degree"=度数(R,3,5...) / "note"=音名
   strings: { "6": true, "5": true, "5L": false }, // 左展開は応用のためデフォルトOFF
   // コードタイプ × 構成 の二段構造
   qualForms: Object.fromEntries(Object.keys(QUALITIES).map(q =>
@@ -752,6 +761,7 @@ function loadSettings() {
     if (typeof s.questionSec === "number") settings.questionSec = s.questionSec;
     if (typeof s.autoNext === "boolean") settings.autoNext = s.autoNext;
     if (typeof s.answerSec === "number") settings.answerSec = s.answerSec;
+    if (s.boardLabel === "degree" || s.boardLabel === "note") settings.boardLabel = s.boardLabel;
     for (const g of ["strings", "roots"]) {
       if (s[g]) for (const k of Object.keys(settings[g])) {
         if (typeof s[g][k] === "boolean") settings[g][k] = s[g][k];
@@ -835,6 +845,13 @@ function buildSettingsUI() {
   for (const [key, m] of Object.entries(ROOT_MODES)) {
     gs.appendChild(makeCheckbox("strings", key, m.label));
   }
+
+  document.querySelectorAll('input[name="board-label"]').forEach(r => {
+    r.checked = settings.boardLabel === r.value;
+    r.addEventListener("change", () => {
+      if (r.checked) { settings.boardLabel = r.value; saveSettings(); }
+    });
+  });
 
   buildLessonPresetButtons();
   buildQualFormsUI();
@@ -1117,11 +1134,22 @@ const FB = {
   stringGap: 30
 };
 
+// 度数表示: ルートからの半音数 → ラベル
+const DEGREE_LABELS = ["R", "♭9", "9", "♭3", "3", "4", "♭5", "5", "♭6", "6", "♭7", "M7"];
+
+function degreeLabel(q, pc) {
+  const iv = (pc - q.root + 12) % 12;
+  if (q.qual === "h79" && iv === 3) return "#9"; // ジミヘンコードの+3は♭3ではなく#9
+  return DEGREE_LABELS[iv];
+}
+
 function renderFretboard(container, q) {
   const { positions, refPos, barre } = computeVoicing(q);
   // ♭系の呼び名で出題された場合は構成音もフラット表記にする
   const useFlat = !!(q.rootName && q.rootName.includes("♭"));
-  const noteLabel = pc => useFlat ? FLAT_NAMES[pc] : NOTE_NAMES[pc];
+  const noteLabel = pc => settings.boardLabel === "degree"
+    ? degreeLabel(q, pc)
+    : (useFlat ? FLAT_NAMES[pc] : NOTE_NAMES[pc]);
   const width = 960;
   const height = FB.top + FB.stringGap * 5 + FB.bottom;
   const innerW = width - FB.left - FB.right;

@@ -340,6 +340,17 @@
       </div>
 
       <div class="filter-group">
+        <div class="group-head"><span class="name">オンコード</span>
+          <span class="head-btns">
+            <button class="small" onclick="setAllOnChords(true)">全選択</button>
+            <button class="small" onclick="setAllOnChords(false)">全解除</button>
+          </span>
+        </div>
+        <div class="chk-group" id="grp-onchords"></div>
+        <p class="note">※ オンコードもルート弦・ルート音の設定に関わらず、ここで選択したものが出題されます。</p>
+      </div>
+
+      <div class="filter-group">
         <div class="group-head"><span class="name">ルート</span></div>
         <div class="sub-head"><span>弦</span></div>
         <div class="chk-group" id="grp-strings"></div>
@@ -697,6 +708,17 @@ const LOW_CHORDS = {
   }
 };
 
+// オンコード: 固定グリップ (ルート弦・ルート音の設定に関わらず個別選択で出題)
+// root はコードのルート音 (度数表示の基準)
+const ON_CHORDS = [
+  { id: "Dm7/G", label: "Dm7/G", root: 2, shape: { 6:3, 4:0, 3:2, 2:1, 1:1 } },
+  { id: "D/F#",  label: "D/F#",  root: 2, shape: { 6:2, 4:0, 3:2, 2:3, 1:2 } },
+  { id: "Am7/G", label: "Am7/G", root: 9, shape: { 6:3, 5:0, 4:2, 3:0, 2:1, 1:0 } },
+  { id: "C/E",   label: "C/E",   root: 0, shape: { 6:0, 5:3, 4:2, 3:0, 2:1, 1:0 } },
+  { id: "G/B",   label: "G/B",   root: 7, shape: { 5:2, 4:0, 3:0, 2:0, 1:3 } },
+  { id: "G/F",   label: "G/F",   root: 7, shape: { 6:1, 4:0, 3:0, 2:0, 1:3 } }
+];
+
 // ローコードのフラットな一覧 (設定UI・プリセット用)。label例: "C", "Am", "D7", "CM7"
 const LOW_CHORD_LIST = [];
 for (const qual of Object.keys(LOW_CHORDS)) {
@@ -730,21 +752,28 @@ const NO_SHIFT_FORMS = new Set(["full", "power", "power3"]);
 
 // 問題オブジェクトからボイシングを計算
 // 戻り値: { positions: [{string, fret, pc, midi, isRoot}], refPos: {string, fret} | null }
+function fixedGripPositions(shape, rootPc) {
+  const positions = [];
+  for (const [sStr, fret] of Object.entries(shape)) {
+    const s = Number(sStr);
+    const pc = (OPEN_STRINGS[s].pc + fret) % 12;
+    positions.push({
+      string: s, fret, pc,
+      midi: OPEN_STRINGS[s].midi + fret,
+      isRoot: pc === rootPc
+    });
+  }
+  return positions;
+}
+
 function computeVoicing(q) {
-  // ローコード: 固定グリップをそのまま使う
+  // ローコード / オンコード: 固定グリップをそのまま使う
   if (q.form === "open") {
-    const shape = LOW_CHORDS[q.qual][q.rootKey];
-    const positions = [];
-    for (const [sStr, fret] of Object.entries(shape)) {
-      const s = Number(sStr);
-      const pc = (OPEN_STRINGS[s].pc + fret) % 12;
-      positions.push({
-        string: s, fret, pc,
-        midi: OPEN_STRINGS[s].midi + fret,
-        isRoot: pc === q.root
-      });
-    }
-    return { positions, refPos: null, barre: null };
+    return { positions: fixedGripPositions(LOW_CHORDS[q.qual][q.rootKey], q.root), refPos: null, barre: null };
+  }
+  if (q.form === "on") {
+    const c = ON_CHORDS.find(o => o.id === q.onId);
+    return { positions: fixedGripPositions(c.shape, q.root), refPos: null, barre: null };
   }
   const mode = q.mode || String(q.string);
   const stringNo = ROOT_MODES[mode].stringNo;
@@ -778,12 +807,14 @@ function computeVoicing(q) {
 }
 
 function chordName(q) {
+  if (q.form === "on") return q.rootName; // オンコードはラベルそのまま (例: Dm7/G)
   const suffix = QUALITIES[q.qual].suffix;
   const rootName = q.rootName || NOTE_NAMES[q.root];
   return rootName + (suffix ? " " + suffix : "");
 }
 function questionLabel(q) {
   if (q.form === "open") return "ローコード " + chordName(q);
+  if (q.form === "on") return "オンコード " + chordName(q);
   const mode = q.mode || String(q.string);
   return ROOT_MODES[mode].label + " " + chordName(q) + "・" + FORMS[q.form].name;
 }
@@ -809,6 +840,7 @@ const settings = {
     [q, Object.fromEntries(availableForms(q).map(f => [f, true]))]
   )),
   lowChords: Object.fromEntries(LOW_CHORD_LIST.map(c => [c.id, true])),
+  onChords: Object.fromEntries(ON_CHORDS.map(c => [c.id, true])),
   roots: Object.fromEntries(ROOT_OPTIONS.map(o => [o.key, true]))
 };
 
@@ -842,6 +874,11 @@ function loadSettings() {
         if (typeof s.lowChords[id] === "boolean") settings.lowChords[id] = s.lowChords[id];
       }
     }
+    if (s.onChords) {
+      for (const id of Object.keys(settings.onChords)) {
+        if (typeof s.onChords[id] === "boolean") settings.onChords[id] = s.onChords[id];
+      }
+    }
   } catch (e) {}
 }
 
@@ -852,6 +889,11 @@ function buildPool() {
     if (!settings.lowChords[c.id]) continue;
     const opt = ROOT_OPTIONS.find(o => o.key === c.rootKey);
     pool.push({ mode: "open", string: 0, form: "open", qual: c.qual, root: opt.pc, rootName: opt.label, rootKey: c.rootKey });
+  }
+  // オンコード: 同様に個別選択で追加
+  for (const c of ON_CHORDS) {
+    if (!settings.onChords[c.id]) continue;
+    pool.push({ mode: "on", string: 0, form: "on", qual: "on", root: c.root, rootName: c.label, onId: c.id });
   }
   for (const mode of Object.keys(ROOT_MODES)) {
     if (!settings.strings[mode]) continue;
@@ -920,6 +962,7 @@ function buildSettingsUI() {
   buildLessonPresetButtons();
   buildQualFormsUI();
   buildLowChordsUI();
+  buildOnChordsUI();
 
   const gr = document.getElementById("grp-roots");
   for (const opt of ROOT_OPTIONS) gr.appendChild(makeCheckbox("roots", opt.key, opt.label));
@@ -1037,11 +1080,16 @@ function applyLessonPreset(name) {
     cb.checked = settings.qualForms[cb.dataset.qual][cb.dataset.form];
   });
   for (const qual of Object.keys(settings.qualForms)) refreshQualParent(qual);
-  // ローコード: 記載されたものだけON
+  // ローコード / オンコード: 記載されたものだけON
   const lows = preset.lowChords || [];
   for (const c of LOW_CHORD_LIST) settings.lowChords[c.id] = lows.includes(c.label);
   document.querySelectorAll("#grp-lowchords input").forEach(cb => {
     cb.checked = settings.lowChords[cb.dataset.lowchord];
+  });
+  const ons = preset.onChords || [];
+  for (const c of ON_CHORDS) settings.onChords[c.id] = ons.includes(c.label);
+  document.querySelectorAll("#grp-onchords input").forEach(cb => {
+    cb.checked = settings.onChords[cb.dataset.onchord];
   });
   saveSettings();
   refreshPoolInfo();
@@ -1087,6 +1135,38 @@ function buildLowChordsUI() {
 function setAllLowChords(value) {
   for (const c of LOW_CHORD_LIST) settings.lowChords[c.id] = value;
   document.querySelectorAll("#grp-lowchords input").forEach(cb => { cb.checked = value; });
+  saveSettings();
+  refreshPoolInfo();
+}
+
+/* ---- オンコードの個別選択 ---- */
+
+function buildOnChordsUI() {
+  const wrap = document.getElementById("grp-onchords");
+  wrap.innerHTML = "";
+  for (const c of ON_CHORDS) {
+    const lb = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = settings.onChords[c.id];
+    cb.dataset.onchord = c.id;
+    cb.addEventListener("change", () => {
+      settings.onChords[c.id] = cb.checked;
+      saveSettings();
+      refreshPoolInfo();
+    });
+    lb.appendChild(cb);
+    const sym = document.createElement("span");
+    sym.className = "sym";
+    sym.textContent = c.label;
+    lb.appendChild(sym);
+    wrap.appendChild(lb);
+  }
+}
+
+function setAllOnChords(value) {
+  for (const c of ON_CHORDS) settings.onChords[c.id] = value;
+  document.querySelectorAll("#grp-onchords input").forEach(cb => { cb.checked = value; });
   saveSettings();
   refreshPoolInfo();
 }
@@ -1223,7 +1303,7 @@ function renderQuestionList() {
     g.className = "q-group";
     const title = document.createElement("div");
     title.className = "q-group-title";
-    title.textContent = (mode === "open" ? "ローコード" : ROOT_MODES[mode].label + " ─ " + FORMS[form].name) + " (" + qs.length + "問)";
+    title.textContent = (mode === "open" ? "ローコード" : mode === "on" ? "オンコード" : ROOT_MODES[mode].label + " ─ " + FORMS[form].name) + " (" + qs.length + "問)";
     g.appendChild(title);
     const chips = document.createElement("div");
     chips.className = "q-chips";
@@ -1401,7 +1481,7 @@ function updateEdgeFades(board) {
 // 表示領域が足りない場合、ルート音ができるだけ中央に来るようスクロール位置を調整
 function centerOnRoot(board, q) {
   requestAnimationFrame(() => {
-    if (q.form === "open") { // ローコードはネック側を表示
+    if (q.form === "open" || q.form === "on") { // ロー/オンコードはネック側を表示
       board.scrollLeft = 0;
       updateEdgeFades(board);
       return;
@@ -1585,9 +1665,10 @@ function nextQuestion() {
 
   const q = game.current;
   document.getElementById("game-qno").textContent = "No. " + game.qno;
-  document.getElementById("q-info").textContent = q.form === "open"
-    ? "ローコード"
-    : ROOT_MODES[q.mode].label + " / " + FORMS[q.form].name;
+  document.getElementById("q-info").textContent =
+    q.form === "open" ? "ローコード" :
+    q.form === "on"   ? "オンコード" :
+    ROOT_MODES[q.mode].label + " / " + FORMS[q.form].name;
   document.getElementById("q-chord").textContent = chordName(q);
 
   document.getElementById("countdown-area").style.display = "block";

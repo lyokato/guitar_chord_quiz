@@ -86,11 +86,14 @@
   /* ---- settings ---- */
   .navbar {
     position: sticky; top: 0; z-index: 20;
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    display: flex; align-items: center; justify-content: flex-end; gap: 10px;
     background: var(--bg); padding: 10px 0; margin-bottom: 10px;
   }
   .navbar .icon-btn { width: 60px; height: 60px; }
-  .nav-title { font-size: 1.3rem; font-weight: 700; letter-spacing: .08em; }
+  .nav-title {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    font-size: 1.3rem; font-weight: 700; letter-spacing: .08em;
+  }
   .panel { background: var(--panel); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
   .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 8px 0; }
   .row label { color: var(--text); }

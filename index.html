@@ -113,10 +113,11 @@
   .chk-group label:has(input[type="radio"]:checked) { border-color: rgba(154, 165, 177, .45); }
 
   /* ---- settings ---- */
+  /* スティッキー時もボタン位置(上から24px)が変わらないよう、.appの上パディング分を内包する */
   .navbar {
     position: sticky; top: 0; z-index: 20;
     display: flex; align-items: center; justify-content: flex-start; gap: 10px;
-    background: var(--bg); padding: 0 0 10px; margin-bottom: 10px;
+    background: var(--bg); margin-top: -24px; padding: 24px 0 10px; margin-bottom: 10px;
   }
   .nav-title {
     position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
@@ -266,6 +267,7 @@
   /* ---- スマホ縦持ち ---- */
   @media (max-width: 600px) {
     .app { padding: 16px 10px 40px; }
+    .navbar { margin-top: -16px; padding-top: 16px; }
     h1 { font-size: 1.4rem; }
     #screen-home, #screen-title { padding-top: 6vh; }
     #screen-home .logo, #screen-title .logo { font-size: 3rem; }
@@ -283,6 +285,7 @@
   /* ---- スマホ横持ち (高さが低い画面) ---- */
   @media (max-height: 520px) and (orientation: landscape) {
     .app { padding: 10px 16px 24px; }
+    .navbar { margin-top: -10px; padding-top: 10px; }
     #screen-home, #screen-title { padding-top: 2vh; }
     #screen-home .logo, #screen-title .logo { font-size: 2rem; margin-bottom: 0; }
     #screen-home .menu, #screen-title .menu { flex-direction: row; justify-content: center; margin-top: 24px; }

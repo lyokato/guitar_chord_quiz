@@ -83,6 +83,8 @@
   #screen-home .menu, #screen-title .menu { display: flex; flex-direction: column; gap: 16px; align-items: center; margin-top: 48px; }
   #screen-home .menu button, #screen-title .menu button { width: 260px; }
   .screen-back { position: absolute; top: 0; left: 0; }
+  /* 戻るボタンは全画面で同一サイズ・同一位置 (コンテンツ左上) */
+  .screen-back, .navbar .icon-btn, #game-header .icon-btn { width: 60px; height: 60px; }
   .title-art { display: block; margin: 0 auto 14px; }
 
   /* ---- RHYTHM BOX ---- */
@@ -114,11 +116,10 @@
   .navbar {
     position: sticky; top: 0; z-index: 20;
     display: flex; align-items: center; justify-content: flex-start; gap: 10px;
-    background: var(--bg); padding: 10px 0; margin-bottom: 10px;
+    background: var(--bg); padding: 0 0 10px; margin-bottom: 10px;
   }
-  .navbar .icon-btn { width: 60px; height: 60px; }
   .nav-title {
-    position: absolute; left: 50%; transform: translateX(-50%);
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
     font-size: 1.3rem; font-weight: 700; letter-spacing: .08em;
   }
   .panel { background: var(--panel); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
@@ -294,7 +295,7 @@
     .icon-btn.timer { width: 50px; height: 50px; }
     #countdown-num { font-size: 1.3rem; }
     .control-line { margin-top: 8px; min-height: 56px; }
-    .next-btn, #game-header .icon-btn, .navbar .icon-btn { width: 52px; height: 52px; }
+    .next-btn, #game-header .icon-btn, .navbar .icon-btn, .screen-back { width: 52px; height: 52px; }
     #fretboard-wrap { padding: 8px 8px 8px; }
     #answer-area { margin-top: 10px; }
   }

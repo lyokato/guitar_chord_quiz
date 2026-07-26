@@ -46,7 +46,10 @@ UIの生成・変更・スタイル調整を行う際は、**必ず先に `DESIG
 - バレーシルエット: form=full のみ。5Lは1〜3弦のR-3フレット位置
 - 度数表示: `DEGREE_LABELS` + h79 の半音+3は「#9」と表示する特例
 - SPA風ルーティング: History API(pushState/popstate)で home/title/settings/game/rhythm を遷移。ブラウザバックでページを離れない。`switchDom` はRHYTHM BOXを離れるとき再生を自動停止する
-- サウンド: Web Audio合成。iOS対策として無音`<audio>`再生(unmuteハック)+`await ctx.resume()`が必須(消音スイッチ対応)。削除しないこと
+- サウンド: Web Audio合成。iOS対策として以下3点が必須。削除・簡略化しないこと
+  1. 無音`<audio>`の**ループ再生**(unmuteハック)。ループでないと再生終了時にセッションが戻り、マナースイッチON時に消音される(実バグで確認済み)
+  2. ユーザー操作内での `await ctx.resume()`
+  3. 初回操作内での無音バッファのウォームアップ再生+スケジューラのクロック再同期ガード
 
 ## RHYTHM BOX のアーキテクチャ
 

@@ -86,11 +86,18 @@
   .title-art { display: block; margin: 6vh auto 14px; }
 
   /* ---- RHYTHM BOX ---- */
-  .bpm-display { text-align: center; margin-bottom: 6px; }
-  .bpm-display #bpm-value { font-size: 3rem; font-weight: 800; color: var(--accent); }
-  .bpm-display .bpm-unit { color: var(--sub); margin-left: 8px; font-weight: 700; }
+  .cfg-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .cfg-row label { width: 7.5em; color: var(--text); font-weight: 700; font-size: .95rem; }
+  .cfg-row select {
+    font-family: inherit; font-size: .95rem;
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 10px; cursor: pointer;
+  }
+  .bpm-num { font-weight: 700; color: var(--sub); }
+  .bpm-num #bpm-value { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
   input[type="range"] {
-    width: 100%; height: 34px; accent-color: var(--accent); cursor: pointer;
+    width: 100%; height: 30px; accent-color: var(--accent); cursor: pointer;
   }
   .beat-dots {
     display: flex; justify-content: center; gap: 14px;
@@ -359,23 +366,20 @@
     </div>
 
     <div class="panel">
-      <h2>リズムパターン</h2>
-      <div class="chk-group" id="rhythm-patterns"></div>
-    </div>
-
-    <div class="panel">
-      <h2>テンポ</h2>
-      <div class="bpm-display"><span id="bpm-value">100</span><span class="bpm-unit">BPM</span></div>
+      <div class="cfg-row">
+        <label for="sel-pattern">リズムパターン</label>
+        <select id="sel-pattern"></select>
+      </div>
+      <div class="cfg-row">
+        <label for="sel-fill-pattern">フィルイン</label>
+        <select id="sel-fill-pattern"></select>
+        <select id="sel-fill-every"></select>
+      </div>
+      <div class="cfg-row">
+        <label for="bpm-slider">テンポ</label>
+        <span class="bpm-num"><span id="bpm-value">100</span> BPM</span>
+      </div>
       <input type="range" id="bpm-slider" min="40" max="240" step="1" value="100">
-    </div>
-
-    <div class="panel">
-      <h2>フィルイン</h2>
-      <div class="sub-head"><span>パターン</span></div>
-      <div class="chk-group" id="rhythm-fill-patterns"></div>
-      <div class="divider"></div>
-      <div class="sub-head"><span>頻度</span></div>
-      <div class="chk-group" id="rhythm-fills"></div>
     </div>
 
     <div class="beat-dots" id="beat-dots"></div>
@@ -1935,60 +1939,43 @@ function beatIndicatorLoop(ctx) {
 
 /* ---- RHYTHM BOX UI ---- */
 
+function fillSelect(sel, entries, current, onChange) {
+  for (const [value, label] of entries) {
+    const op = document.createElement("option");
+    op.value = value;
+    op.textContent = label;
+    sel.appendChild(op);
+  }
+  sel.value = current;
+  sel.addEventListener("change", () => onChange(sel.value));
+}
+
 function buildRhythmUI() {
-  const pw = document.getElementById("rhythm-patterns");
-  for (const [key, p] of Object.entries(DRUM_PATTERNS)) {
-    const lb = document.createElement("label");
-    const rb = document.createElement("input");
-    rb.type = "radio";
-    rb.name = "rhythm-pattern";
-    rb.value = key;
-    rb.checked = rhythmSettings.pattern === key;
-    rb.addEventListener("change", () => {
-      if (!rb.checked) return;
-      rhythmSettings.pattern = key;
+  fillSelect(
+    document.getElementById("sel-pattern"),
+    Object.entries(DRUM_PATTERNS).map(([k, p]) => [k, p.name]),
+    rhythmSettings.pattern,
+    v => {
+      rhythmSettings.pattern = v;
       saveRhythmSettings();
       buildBeatDots();
       if (rhythm.playing) { rhythm.step = 0; rhythm.bar = 0; }
-    });
-    lb.appendChild(rb);
-    lb.appendChild(document.createTextNode(p.name));
-    pw.appendChild(lb);
-  }
+    }
+  );
 
-  const fpw = document.getElementById("rhythm-fill-patterns");
-  for (const [key, p] of Object.entries(FILL_PATTERNS)) {
-    const lb = document.createElement("label");
-    const rb = document.createElement("input");
-    rb.type = "radio";
-    rb.name = "rhythm-fill-pattern";
-    rb.checked = rhythmSettings.fillPattern === key;
-    rb.addEventListener("change", () => {
-      if (!rb.checked) return;
-      rhythmSettings.fillPattern = key;
-      saveRhythmSettings();
-    });
-    lb.appendChild(rb);
-    lb.appendChild(document.createTextNode(p.name));
-    fpw.appendChild(lb);
-  }
+  fillSelect(
+    document.getElementById("sel-fill-pattern"),
+    Object.entries(FILL_PATTERNS).map(([k, p]) => [k, p.name]),
+    rhythmSettings.fillPattern,
+    v => { rhythmSettings.fillPattern = v; saveRhythmSettings(); }
+  );
 
-  const fw = document.getElementById("rhythm-fills");
-  for (const opt of FILL_OPTIONS) {
-    const lb = document.createElement("label");
-    const rb = document.createElement("input");
-    rb.type = "radio";
-    rb.name = "rhythm-fill";
-    rb.checked = rhythmSettings.fillEvery === opt.key;
-    rb.addEventListener("change", () => {
-      if (!rb.checked) return;
-      rhythmSettings.fillEvery = opt.key;
-      saveRhythmSettings();
-    });
-    lb.appendChild(rb);
-    lb.appendChild(document.createTextNode(opt.name));
-    fw.appendChild(lb);
-  }
+  fillSelect(
+    document.getElementById("sel-fill-every"),
+    FILL_OPTIONS.map(o => [String(o.key), o.name]),
+    String(rhythmSettings.fillEvery),
+    v => { rhythmSettings.fillEvery = Number(v); saveRhythmSettings(); }
+  );
 
   const slider = document.getElementById("bpm-slider");
   const value = document.getElementById("bpm-value");

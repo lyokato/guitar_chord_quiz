@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ギターコード・ポジションクイズ</title>
+<title>ギター練習ツール</title>
 <style>
   :root {
     --bg: #14171c;
@@ -77,21 +77,51 @@
   .timer-row { display: flex; align-items: center; justify-content: center; gap: 10px; }
   .timer-row .ring-wrap { margin: 0; }
 
-  /* ---- title ---- */
-  #screen-title { text-align: center; padding-top: 12vh; }
-  #screen-title .logo { font-size: 4rem; margin-bottom: 8px; }
-  #screen-title .menu { display: flex; flex-direction: column; gap: 16px; align-items: center; margin-top: 48px; }
-  #screen-title .menu button { width: 260px; }
+  /* ---- home / title ---- */
+  #screen-home, #screen-title { text-align: center; }
+  #screen-home { padding-top: 12vh; }
+  #screen-home .logo { font-size: 4rem; margin-bottom: 8px; }
+  #screen-home .menu, #screen-title .menu { display: flex; flex-direction: column; gap: 16px; align-items: center; margin-top: 48px; }
+  #screen-home .menu button, #screen-title .menu button { width: 260px; }
+  .title-art { display: block; margin: 6vh auto 14px; }
+
+  /* ---- RHYTHM BOX ---- */
+  .bpm-display { text-align: center; margin-bottom: 6px; }
+  .bpm-display #bpm-value { font-size: 3rem; font-weight: 800; color: var(--accent); }
+  .bpm-display .bpm-unit { color: var(--sub); margin-left: 8px; font-weight: 700; }
+  input[type="range"] {
+    width: 100%; height: 34px; accent-color: var(--accent); cursor: pointer;
+  }
+  .beat-dots {
+    display: flex; justify-content: center; gap: 14px;
+    margin: 22px 0 6px; min-height: 18px;
+  }
+  .beat-dots span {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--panel2); transition: transform .08s, background-color .08s;
+  }
+  .beat-dots span.active { background: var(--timer); transform: scale(1.35); }
+  .beat-dots span.accent.active { background: var(--accent); }
+  .transport { text-align: center; margin-top: 14px; }
+  .play-btn {
+    width: 84px; height: 84px;
+    background: var(--tone); color: #fff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .5);
+  }
+  .chk-group label:has(input[type="radio"]:checked) { border-color: rgba(154, 165, 177, .45); }
 
   /* ---- settings ---- */
+  /* スティッキー時もボタン位置(上から24px)が変わらないよう、.appの上パディング分を内包する */
   .navbar {
     position: sticky; top: 0; z-index: 20;
-    display: flex; align-items: center; justify-content: flex-end; gap: 10px;
-    background: var(--bg); padding: 10px 0; margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: flex-start; gap: 10px;
+    background: var(--bg); margin-top: -24px; padding: 24px 0 10px; margin-bottom: 10px;
   }
+  /* 戻るボタンは全画面共通のnavbar内で同一サイズ・同一位置 */
   .navbar .icon-btn { width: 60px; height: 60px; }
   .nav-title {
-    position: absolute; left: 50%; transform: translateX(-50%);
+    /* ボタン中心 (上パディング24px + ボタン半径30px) に揃える */
+    position: absolute; left: 50%; top: 54px; transform: translate(-50%, -50%);
     font-size: 1.3rem; font-weight: 700; letter-spacing: .08em;
   }
   .panel { background: var(--panel); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
@@ -183,9 +213,6 @@
   .toolbar { display: flex; gap: 12px; margin-top: 8px; }
 
   /* ---- game ---- */
-  #game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-  #game-header .icon-btn { width: 60px; height: 60px; } /* 進行ボタン(.next-btn)と同サイズ */
-  #game-qno { color: var(--sub); }
   .q-card {
     background: var(--panel); border-radius: 16px;
     padding: 30px 20px; text-align: center; margin-bottom: 20px;
@@ -239,9 +266,12 @@
   /* ---- スマホ縦持ち ---- */
   @media (max-width: 600px) {
     .app { padding: 16px 10px 40px; }
+    .navbar { margin-top: -16px; padding-top: 16px; }
+    .nav-title { top: 46px; }
     h1 { font-size: 1.4rem; }
-    #screen-title { padding-top: 6vh; }
-    #screen-title .logo { font-size: 3rem; }
+    #screen-home { padding-top: 6vh; }
+    #screen-home .logo { font-size: 3rem; }
+    .title-art { margin-top: 3vh; }
     .q-line1 { font-size: .95rem; }
     .q-chord { font-size: 2.8rem; }
     .q-card { padding: 14px 12px; }
@@ -256,11 +286,13 @@
   /* ---- スマホ横持ち (高さが低い画面) ---- */
   @media (max-height: 520px) and (orientation: landscape) {
     .app { padding: 10px 16px 24px; }
-    #screen-title { padding-top: 2vh; }
-    #screen-title .logo { font-size: 2rem; margin-bottom: 0; }
-    #screen-title .menu { flex-direction: row; justify-content: center; margin-top: 24px; }
-    #screen-title .menu button { width: auto; min-width: 180px; }
-    #game-header { margin-bottom: 8px; }
+    .navbar { margin-top: -10px; padding-top: 10px; }
+    .nav-title { top: 36px; }
+    #screen-home { padding-top: 2vh; }
+    #screen-home .logo { font-size: 2rem; margin-bottom: 0; }
+    #screen-home .menu, #screen-title .menu { flex-direction: row; justify-content: center; margin-top: 24px; }
+    #screen-home .menu button, #screen-title .menu button { width: auto; min-width: 180px; }
+    .title-art { margin-top: 0; width: 120px; }
     .q-card { padding: 8px 12px; margin-bottom: 10px; }
     .q-line1 { font-size: .9rem; }
     .q-chord { font-size: 2rem; margin-top: 2px; }
@@ -268,7 +300,7 @@
     .icon-btn.timer { width: 50px; height: 50px; }
     #countdown-num { font-size: 1.3rem; }
     .control-line { margin-top: 8px; min-height: 56px; }
-    .next-btn, #game-header .icon-btn, .navbar .icon-btn { width: 52px; height: 52px; }
+    .next-btn, .navbar .icon-btn { width: 52px; height: 52px; }
     #fretboard-wrap { padding: 8px 8px 8px; }
     #answer-area { margin-top: 10px; }
   }
@@ -277,23 +309,88 @@
 <body>
 <div class="app">
 
-  <!-- ==== タイトル ==== -->
-  <div id="screen-title" class="screen active">
+  <!-- ==== ホーム ==== -->
+  <div id="screen-home" class="screen active">
     <div class="logo">🎸</div>
-    <h1>コード・ポジションクイズ</h1>
+    <h1>ギター練習ツール</h1>
     <div class="menu">
-      <button class="primary big" onclick="startGame()">START</button>
-      <button class="big ghost" onclick="showScreen('settings')">SETTINGS</button>
+      <button class="primary big" onclick="showScreen('title')">コードクイズ</button>
+      <button class="primary big" onclick="showScreen('rhythm')">リズムボックス</button>
+    </div>
+  </div>
+
+  <!-- ==== コードクイズ: タイトル ==== -->
+  <div id="screen-title" class="screen">
+    <div class="navbar">
+      <button class="icon-btn nav" onclick="navBack()" aria-label="戻る" title="戻る">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <svg class="title-art" viewBox="0 0 160 72" width="170" aria-hidden="true">
+      <rect x="4" y="10" width="152" height="52" rx="5" fill="#2b241d"/>
+      <rect x="12" y="10" width="5" height="52" rx="2" fill="#d8d2c5"/>
+      <line x1="52" y1="10" x2="52" y2="62" stroke="#5a5248" stroke-width="2.5"/>
+      <line x1="88" y1="10" x2="88" y2="62" stroke="#5a5248" stroke-width="2.5"/>
+      <line x1="124" y1="10" x2="124" y2="62" stroke="#5a5248" stroke-width="2.5"/>
+      <line x1="10" y1="18" x2="156" y2="18" stroke="#b8bec6" stroke-width="1"/>
+      <line x1="10" y1="27" x2="156" y2="27" stroke="#b8bec6" stroke-width="1.2"/>
+      <line x1="10" y1="36" x2="156" y2="36" stroke="#b8bec6" stroke-width="1.4"/>
+      <line x1="10" y1="45" x2="156" y2="45" stroke="#b8bec6" stroke-width="1.6"/>
+      <line x1="10" y1="54" x2="156" y2="54" stroke="#b8bec6" stroke-width="1.8"/>
+      <circle cx="34" cy="45" r="7" fill="var(--root)"/>
+      <circle cx="70" cy="36" r="7" fill="var(--tone)"/>
+      <circle cx="70" cy="18" r="7" fill="var(--tone)"/>
+      <circle cx="106" cy="27" r="7" fill="var(--tone)"/>
+    </svg>
+    <h1>コードクイズ</h1>
+    <div class="menu">
+      <button class="primary big" onclick="startGame()">スタート</button>
+      <button class="big ghost" onclick="showScreen('settings')">コンフィグ</button>
+    </div>
+  </div>
+
+  <!-- ==== RHYTHM BOX ==== -->
+  <div id="screen-rhythm" class="screen">
+    <div class="navbar">
+      <button class="icon-btn nav" onclick="navBack()" aria-label="戻る" title="戻る">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="nav-title">リズムボックス</span>
+    </div>
+
+    <div class="panel">
+      <h2>リズムパターン</h2>
+      <div class="chk-group" id="rhythm-patterns"></div>
+    </div>
+
+    <div class="panel">
+      <h2>テンポ</h2>
+      <div class="bpm-display"><span id="bpm-value">100</span><span class="bpm-unit">BPM</span></div>
+      <input type="range" id="bpm-slider" min="40" max="240" step="1" value="100">
+    </div>
+
+    <div class="panel">
+      <h2>フィルイン</h2>
+      <div class="chk-group" id="rhythm-fills"></div>
+    </div>
+
+    <div class="beat-dots" id="beat-dots"></div>
+
+    <div class="transport">
+      <button id="btn-rhythm-toggle" class="icon-btn play-btn" onclick="toggleRhythm()" aria-label="再生 / 停止">
+        <svg id="icon-play" viewBox="0 0 24 24" width="30" height="30"><path d="M8 5v14l12-7z" fill="currentColor"/></svg>
+        <svg id="icon-stop" viewBox="0 0 24 24" width="30" height="30" style="display:none"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>
+      </button>
     </div>
   </div>
 
   <!-- ==== 設定 ==== -->
   <div id="screen-settings" class="screen">
     <div class="navbar">
-      <span class="nav-title">SETTINGS</span>
-      <button class="icon-btn nav" onclick="navBack()" aria-label="閉じる" title="閉じる">
-        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      <button class="icon-btn nav" onclick="navBack()" aria-label="戻る" title="戻る">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
+      <span class="nav-title">コンフィグ</span>
     </div>
 
     <div class="panel">
@@ -397,17 +494,13 @@
       </div>
     </div>
 
-    <div style="text-align:center; margin-top: 8px;">
-      <button class="big" onclick="navBack()">タイトルへ戻る</button>
-    </div>
   </div>
 
   <!-- ==== ゲーム ==== -->
   <div id="screen-game" class="screen">
-    <div id="game-header">
-      <span id="game-qno">No. 1</span>
+    <div class="navbar">
       <button class="icon-btn nav" onclick="endGame()" aria-label="終了" title="終了">
-        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>
 
@@ -1599,6 +1692,264 @@ async function playChord(q) {
   sorted.forEach((p, i) => pluck(ctx, p.midi, t0 + 0.055 * i, 0.22, 2.2));
 }
 
+/* ================= RHYTHM BOX ================= */
+
+// 16分グリッドのステップ表記。beats=1小節の拍数 (grid=拍あたり4ステップ固定)
+// swing: 8分裏 (拍内ステップ2) を3連の位置へ遅らせる
+const DRUM_PATTERNS = {
+  click:   { name: "クリック",   beats: 4, tracks: { click: [0, 4, 8, 12] } },
+  beat8:   { name: "8ビート",    beats: 4, tracks: { hh: [0,2,4,6,8,10,12,14], kick: [0,8,10], snare: [4,12] } },
+  beat16:  { name: "16ビート",   beats: 4, tracks: { hh: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15], kick: [0,6,8], snare: [4,12] } },
+  four:    { name: "4つ打ち",    beats: 4, tracks: { kick: [0,4,8,12], oh: [2,6,10,14], snare: [4,12] } },
+  shuffle: { name: "シャッフル", beats: 4, swing: true, tracks: { hh: [0,2,4,6,8,10,12,14], kick: [0,8], snare: [4,12] } },
+  waltz:   { name: "3/4",       beats: 3, tracks: { kick: [0], hh: [4,8], snare: [8] } }
+};
+
+// フィルイン (小節の後半を上書き): スネアの16分連打 + 次小節頭にクラッシュ
+const FILL_STEPS = [8, 10, 11, 12, 13, 14, 15];
+
+const FILL_OPTIONS = [
+  { key: 0, name: "なし" },
+  { key: 2, name: "2小節ごと" },
+  { key: 4, name: "4小節ごと" },
+  { key: 8, name: "8小節ごと" }
+];
+
+const rhythmSettings = { bpm: 100, pattern: "beat8", fillEvery: 4 };
+
+function saveRhythmSettings() {
+  try { localStorage.setItem("rhythmSettings", JSON.stringify(rhythmSettings)); } catch (e) {}
+}
+function loadRhythmSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem("rhythmSettings") || "{}");
+    if (typeof s.bpm === "number") rhythmSettings.bpm = Math.min(240, Math.max(40, s.bpm));
+    if (DRUM_PATTERNS[s.pattern]) rhythmSettings.pattern = s.pattern;
+    if (FILL_OPTIONS.some(o => o.key === s.fillEvery)) rhythmSettings.fillEvery = s.fillEvery;
+  } catch (e) {}
+}
+
+/* ---- ドラム音源 (Web Audio合成) ---- */
+
+let noiseBuffer = null;
+function getNoiseBuffer(ctx) {
+  if (!noiseBuffer) {
+    noiseBuffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const d = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  return noiseBuffer;
+}
+
+function envGain(ctx, t, peak, dur) {
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + 0.003);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  g.connect(ctx.destination);
+  return g;
+}
+
+function playNoise(ctx, t, { peak, dur, filterType, freq }) {
+  const src = ctx.createBufferSource();
+  src.buffer = getNoiseBuffer(ctx);
+  const f = ctx.createBiquadFilter();
+  f.type = filterType;
+  f.frequency.value = freq;
+  src.connect(f);
+  f.connect(envGain(ctx, t, peak, dur));
+  src.start(t);
+  src.stop(t + dur + 0.05);
+}
+
+const DRUM_SOUNDS = {
+  kick(ctx, t) {
+    const o = ctx.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(150, t);
+    o.frequency.exponentialRampToValueAtTime(48, t + 0.11);
+    o.connect(envGain(ctx, t, 0.9, 0.26));
+    o.start(t); o.stop(t + 0.3);
+  },
+  snare(ctx, t) {
+    playNoise(ctx, t, { peak: 0.45, dur: 0.18, filterType: "highpass", freq: 1100 });
+    const o = ctx.createOscillator();
+    o.type = "triangle";
+    o.frequency.setValueAtTime(190, t);
+    o.connect(envGain(ctx, t, 0.3, 0.1));
+    o.start(t); o.stop(t + 0.15);
+  },
+  hh(ctx, t)  { playNoise(ctx, t, { peak: 0.22, dur: 0.05, filterType: "highpass", freq: 7500 }); },
+  oh(ctx, t)  { playNoise(ctx, t, { peak: 0.22, dur: 0.32, filterType: "highpass", freq: 7000 }); },
+  crash(ctx, t) { playNoise(ctx, t, { peak: 0.3, dur: 1.1, filterType: "highpass", freq: 5000 }); },
+  click(ctx, t, accent) {
+    const o = ctx.createOscillator();
+    o.type = "square";
+    o.frequency.value = accent ? 1600 : 1050;
+    o.connect(envGain(ctx, t, accent ? 0.35 : 0.22, 0.035));
+    o.start(t); o.stop(t + 0.06);
+  }
+};
+
+/* ---- ルックアヘッドスケジューラ ---- */
+
+const rhythm = {
+  playing: false,
+  timer: null,
+  step: 0, bar: 0,
+  nextTime: 0,
+  beatEvents: [] // ビジュアル用 {time, beat}
+};
+
+const LOOKAHEAD_MS = 25;
+const SCHEDULE_AHEAD = 0.12; // 秒
+
+function scheduleRhythm(ctx) {
+  const pat = DRUM_PATTERNS[rhythmSettings.pattern];
+  const stepsPerBar = pat.beats * 4;
+  while (rhythm.nextTime < ctx.currentTime + SCHEDULE_AHEAD) {
+    const stepDur = 60 / rhythmSettings.bpm / 4;
+    const step = rhythm.step;
+    let t = rhythm.nextTime;
+    if (pat.swing && step % 4 === 2) t += stepDur * 2 / 3; // 8分裏を3連の位置へ
+
+    const isFillBar = rhythmSettings.fillEvery > 0 && (rhythm.bar % rhythmSettings.fillEvery) === rhythmSettings.fillEvery - 1;
+    if (isFillBar && FILL_STEPS.includes(step)) {
+      DRUM_SOUNDS.snare(ctx, t); // フィル: 後半をスネア連打で上書き
+    } else {
+      for (const [inst, steps] of Object.entries(pat.tracks)) {
+        if (!steps.includes(step)) continue;
+        if (inst === "click") DRUM_SOUNDS.click(ctx, t, step === 0);
+        else DRUM_SOUNDS[inst](ctx, t);
+      }
+    }
+    // フィル直後の小節頭にクラッシュ
+    if (step === 0 && rhythm.bar > 0 && rhythmSettings.fillEvery > 0 && (rhythm.bar % rhythmSettings.fillEvery) === 0) {
+      DRUM_SOUNDS.crash(ctx, t);
+    }
+    if (step % 4 === 0) rhythm.beatEvents.push({ time: t, beat: step / 4 });
+
+    rhythm.nextTime += stepDur;
+    rhythm.step = (step + 1) % stepsPerBar;
+    if (rhythm.step === 0) rhythm.bar++;
+  }
+}
+
+async function startRhythm() {
+  const ctx = await getAudioCtx();
+  rhythm.playing = true;
+  rhythm.step = 0;
+  rhythm.bar = 0;
+  rhythm.nextTime = ctx.currentTime + 0.08;
+  rhythm.beatEvents = [];
+  rhythm.timer = setInterval(() => scheduleRhythm(ctx), LOOKAHEAD_MS);
+  buildBeatDots();
+  updateTransportUI();
+  beatIndicatorLoop(ctx);
+}
+
+function stopRhythm() {
+  if (!rhythm.playing) return;
+  rhythm.playing = false;
+  if (rhythm.timer) { clearInterval(rhythm.timer); rhythm.timer = null; }
+  rhythm.beatEvents = [];
+  document.querySelectorAll("#beat-dots span").forEach(d => d.classList.remove("active"));
+  updateTransportUI();
+}
+
+function toggleRhythm() {
+  if (rhythm.playing) stopRhythm();
+  else startRhythm();
+}
+
+function updateTransportUI() {
+  const play = document.getElementById("icon-play");
+  const stop = document.getElementById("icon-stop");
+  if (!play) return;
+  play.style.display = rhythm.playing ? "none" : "";
+  stop.style.display = rhythm.playing ? "" : "none";
+}
+
+/* ---- ビートインジケーター ---- */
+
+function buildBeatDots() {
+  const wrap = document.getElementById("beat-dots");
+  wrap.innerHTML = "";
+  const beats = DRUM_PATTERNS[rhythmSettings.pattern].beats;
+  for (let i = 0; i < beats; i++) {
+    const d = document.createElement("span");
+    if (i === 0) d.classList.add("accent");
+    wrap.appendChild(d);
+  }
+}
+
+function beatIndicatorLoop(ctx) {
+  if (!rhythm.playing) return;
+  const now = ctx.currentTime;
+  let current = null;
+  while (rhythm.beatEvents.length && rhythm.beatEvents[0].time <= now) {
+    current = rhythm.beatEvents.shift();
+  }
+  if (current) {
+    const dots = document.querySelectorAll("#beat-dots span");
+    dots.forEach((d, i) => d.classList.toggle("active", i === current.beat));
+  }
+  requestAnimationFrame(() => beatIndicatorLoop(ctx));
+}
+
+/* ---- RHYTHM BOX UI ---- */
+
+function buildRhythmUI() {
+  const pw = document.getElementById("rhythm-patterns");
+  for (const [key, p] of Object.entries(DRUM_PATTERNS)) {
+    const lb = document.createElement("label");
+    const rb = document.createElement("input");
+    rb.type = "radio";
+    rb.name = "rhythm-pattern";
+    rb.value = key;
+    rb.checked = rhythmSettings.pattern === key;
+    rb.addEventListener("change", () => {
+      if (!rb.checked) return;
+      rhythmSettings.pattern = key;
+      saveRhythmSettings();
+      buildBeatDots();
+      if (rhythm.playing) { rhythm.step = 0; rhythm.bar = 0; }
+    });
+    lb.appendChild(rb);
+    lb.appendChild(document.createTextNode(p.name));
+    pw.appendChild(lb);
+  }
+
+  const fw = document.getElementById("rhythm-fills");
+  for (const opt of FILL_OPTIONS) {
+    const lb = document.createElement("label");
+    const rb = document.createElement("input");
+    rb.type = "radio";
+    rb.name = "rhythm-fill";
+    rb.checked = rhythmSettings.fillEvery === opt.key;
+    rb.addEventListener("change", () => {
+      if (!rb.checked) return;
+      rhythmSettings.fillEvery = opt.key;
+      saveRhythmSettings();
+    });
+    lb.appendChild(rb);
+    lb.appendChild(document.createTextNode(opt.name));
+    fw.appendChild(lb);
+  }
+
+  const slider = document.getElementById("bpm-slider");
+  const value = document.getElementById("bpm-value");
+  slider.value = rhythmSettings.bpm;
+  value.textContent = rhythmSettings.bpm;
+  slider.addEventListener("input", () => {
+    rhythmSettings.bpm = Number(slider.value);
+    value.textContent = slider.value;
+    saveRhythmSettings();
+  });
+
+  buildBeatDots();
+}
+
 /* ================= ゲーム進行 ================= */
 
 const game = {
@@ -1621,6 +1972,7 @@ function advance() {
 let appNavDepth = 0;
 
 function switchDom(name) {
+  if (name !== "rhythm") stopRhythm(); // RHYTHM BOXを離れたら再生停止
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById("screen-" + name).classList.add("active");
   window.scrollTo(0, 0);
@@ -1632,16 +1984,16 @@ function showScreen(name) {
   history.pushState({ screen: name, depth: appNavDepth }, "", "#" + name);
 }
 
-// 戻るボタン: 履歴があればブラウザバック相当、なければタイトルへ
+// 戻るボタン: 履歴があればブラウザバック相当、なければホームへ
 function navBack() {
   if (appNavDepth > 0) history.back();
-  else showScreen("title");
+  else showScreen("home");
 }
 
 window.addEventListener("popstate", (e) => {
   appNavDepth = (e.state && typeof e.state.depth === "number") ? e.state.depth : 0;
-  let name = (e.state && e.state.screen) || "title";
-  if (!document.getElementById("screen-" + name)) name = "title";
+  let name = (e.state && e.state.screen) || "home";
+  if (!document.getElementById("screen-" + name)) name = "home";
   clearGameTimer();
   if (name === "game") {
     // 戻る/進むでゲーム画面に来た場合は新しい問題から再開
@@ -1700,7 +2052,6 @@ function nextQuestion() {
   game.phase = "question";
 
   const q = game.current;
-  document.getElementById("game-qno").textContent = "No. " + game.qno;
   document.getElementById("q-info").textContent =
     q.form === "open" ? "ローコード" :
     q.form === "on"   ? "オンコード" :
@@ -1794,10 +2145,12 @@ function updateTimerButtons() {
 
 loadSettings();
 buildSettingsUI();
+loadRhythmSettings();
+buildRhythmUI();
 
-// 初期履歴エントリ (リロード時のハッシュに関わらずタイトルから開始)
-history.replaceState({ screen: "title", depth: 0 }, "", "#title");
-switchDom("title");
+// 初期履歴エントリ (リロード時のハッシュに関わらずホームから開始)
+history.replaceState({ screen: "home", depth: 0 }, "", "#home");
+switchDom("home");
 
 for (const id of ["game-board", "preview-board"]) {
   const b = document.getElementById(id);

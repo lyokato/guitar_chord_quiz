@@ -371,6 +371,10 @@
 
     <div class="panel">
       <h2>フィルイン</h2>
+      <div class="sub-head"><span>パターン</span></div>
+      <div class="chk-group" id="rhythm-fill-patterns"></div>
+      <div class="divider"></div>
+      <div class="sub-head"><span>頻度</span></div>
       <div class="chk-group" id="rhythm-fills"></div>
     </div>
 
@@ -1705,8 +1709,19 @@ const DRUM_PATTERNS = {
   waltz:   { name: "3/4",       beats: 3, tracks: { kick: [0], hh: [4,8], snare: [8] } }
 };
 
-// フィルイン (小節の後半を上書き): スネアの16分連打 + 次小節頭にクラッシュ
-const FILL_STEPS = [8, 10, 11, 12, 13, 14, 15];
+// フィルインパターン。off = 小節末尾からのステップオフセット (拍子に依存しない)
+// overlay=true: 通常パターンに重ねるだけ (控えめ) / false: 小節後半をフィルで置き換える
+// crash=true: フィル直後の小節頭にクラッシュ
+const FILL_PATTERNS = {
+  soft:  { name: "控えめ",         overlay: true,  crash: false,
+           hits: [ { off: -2, inst: "snare", gain: 0.45 }, { off: -1, inst: "snare", gain: 0.7 } ] },
+  oh:    { name: "オープンハット", overlay: true,  crash: false,
+           hits: [ { off: -4, inst: "oh" } ] },
+  tom:   { name: "タム回し",       overlay: false, crash: true,
+           hits: [ { off: -8, inst: "tomH" }, { off: -6, inst: "tomM" }, { off: -4, inst: "tomL" }, { off: -2, inst: "snare" } ] },
+  snare: { name: "スネア連打",     overlay: false, crash: true,
+           hits: [-8, -6, -5, -4, -3, -2, -1].map(off => ({ off, inst: "snare" })) }
+};
 
 const FILL_OPTIONS = [
   { key: 0, name: "なし" },
@@ -1715,7 +1730,7 @@ const FILL_OPTIONS = [
   { key: 8, name: "8小節ごと" }
 ];
 
-const rhythmSettings = { bpm: 100, pattern: "beat8", fillEvery: 4 };
+const rhythmSettings = { bpm: 100, pattern: "beat8", fillEvery: 4, fillPattern: "soft" };
 
 function saveRhythmSettings() {
   try { localStorage.setItem("rhythmSettings", JSON.stringify(rhythmSettings)); } catch (e) {}
@@ -1726,6 +1741,7 @@ function loadRhythmSettings() {
     if (typeof s.bpm === "number") rhythmSettings.bpm = Math.min(240, Math.max(40, s.bpm));
     if (DRUM_PATTERNS[s.pattern]) rhythmSettings.pattern = s.pattern;
     if (FILL_OPTIONS.some(o => o.key === s.fillEvery)) rhythmSettings.fillEvery = s.fillEvery;
+    if (FILL_PATTERNS[s.fillPattern]) rhythmSettings.fillPattern = s.fillPattern;
   } catch (e) {}
 }
 
@@ -1771,13 +1787,24 @@ const DRUM_SOUNDS = {
     o.connect(envGain(ctx, t, 0.9, 0.26));
     o.start(t); o.stop(t + 0.3);
   },
-  snare(ctx, t) {
-    playNoise(ctx, t, { peak: 0.45, dur: 0.18, filterType: "highpass", freq: 1100 });
+  snare(ctx, t, vel = 1) {
+    playNoise(ctx, t, { peak: 0.45 * vel, dur: 0.18, filterType: "highpass", freq: 1100 });
     const o = ctx.createOscillator();
     o.type = "triangle";
     o.frequency.setValueAtTime(190, t);
-    o.connect(envGain(ctx, t, 0.3, 0.1));
+    o.connect(envGain(ctx, t, 0.3 * vel, 0.1));
     o.start(t); o.stop(t + 0.15);
+  },
+  tomH(ctx, t) { DRUM_SOUNDS._tom(ctx, t, 240); },
+  tomM(ctx, t) { DRUM_SOUNDS._tom(ctx, t, 180); },
+  tomL(ctx, t) { DRUM_SOUNDS._tom(ctx, t, 130); },
+  _tom(ctx, t, freq) {
+    const o = ctx.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(freq * 1.4, t);
+    o.frequency.exponentialRampToValueAtTime(freq, t + 0.09);
+    o.connect(envGain(ctx, t, 0.55, 0.3));
+    o.start(t); o.stop(t + 0.35);
   },
   hh(ctx, t)  { playNoise(ctx, t, { peak: 0.22, dur: 0.05, filterType: "highpass", freq: 7500 }); },
   oh(ctx, t)  { playNoise(ctx, t, { peak: 0.22, dur: 0.32, filterType: "highpass", freq: 7000 }); },
@@ -1813,18 +1840,27 @@ function scheduleRhythm(ctx) {
     let t = rhythm.nextTime;
     if (pat.swing && step % 4 === 2) t += stepDur * 2 / 3; // 8分裏を3連の位置へ
 
+    const fp = FILL_PATTERNS[rhythmSettings.fillPattern];
     const isFillBar = rhythmSettings.fillEvery > 0 && (rhythm.bar % rhythmSettings.fillEvery) === rhythmSettings.fillEvery - 1;
-    if (isFillBar && FILL_STEPS.includes(step)) {
-      DRUM_SOUNDS.snare(ctx, t); // フィル: 後半をスネア連打で上書き
-    } else {
+    // 置き換え型フィルは、フィル開始位置以降の通常パターンを止める
+    const suppressFrom = (isFillBar && !fp.overlay)
+      ? stepsPerBar + Math.min(...fp.hits.map(h => h.off))
+      : Infinity;
+    if (step < suppressFrom) {
       for (const [inst, steps] of Object.entries(pat.tracks)) {
         if (!steps.includes(step)) continue;
         if (inst === "click") DRUM_SOUNDS.click(ctx, t, step === 0);
         else DRUM_SOUNDS[inst](ctx, t);
       }
     }
-    // フィル直後の小節頭にクラッシュ
-    if (step === 0 && rhythm.bar > 0 && rhythmSettings.fillEvery > 0 && (rhythm.bar % rhythmSettings.fillEvery) === 0) {
+    if (isFillBar) {
+      for (const h of fp.hits) {
+        if (stepsPerBar + h.off === step) DRUM_SOUNDS[h.inst](ctx, t, h.gain ?? 1);
+      }
+    }
+    // フィル直後の小節頭にクラッシュ (パターンが指定する場合のみ)
+    if (step === 0 && rhythm.bar > 0 && rhythmSettings.fillEvery > 0 &&
+        (rhythm.bar % rhythmSettings.fillEvery) === 0 && fp.crash) {
       DRUM_SOUNDS.crash(ctx, t);
     }
     if (step % 4 === 0) rhythm.beatEvents.push({ time: t, beat: step / 4 });
@@ -1918,6 +1954,23 @@ function buildRhythmUI() {
     lb.appendChild(rb);
     lb.appendChild(document.createTextNode(p.name));
     pw.appendChild(lb);
+  }
+
+  const fpw = document.getElementById("rhythm-fill-patterns");
+  for (const [key, p] of Object.entries(FILL_PATTERNS)) {
+    const lb = document.createElement("label");
+    const rb = document.createElement("input");
+    rb.type = "radio";
+    rb.name = "rhythm-fill-pattern";
+    rb.checked = rhythmSettings.fillPattern === key;
+    rb.addEventListener("change", () => {
+      if (!rb.checked) return;
+      rhythmSettings.fillPattern = key;
+      saveRhythmSettings();
+    });
+    lb.appendChild(rb);
+    lb.appendChild(document.createTextNode(p.name));
+    fpw.appendChild(lb);
   }
 
   const fw = document.getElementById("rhythm-fills");

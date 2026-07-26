@@ -53,7 +53,7 @@ UIの生成・変更・スタイル調整を行う際は、**必ず先に `DESIG
 - `DRUM_PATTERNS`: 16分グリッド(拍あたり4ステップ)でパターン定義。`beats`=拍子, `swing`=シャッフル(8分裏を3連位置へ), `tracks`={楽器: ステップ配列}
 - `DRUM_SOUNDS`: kick/snare/hh/oh/crash/click をWeb Audioで合成(サンプル不使用)。ノイズは共有バッファ
 - スケジューラ: ルックアヘッド方式(25ms間隔のsetIntervalでAudioContextクロックの0.12秒先まで予約)。**setIntervalで直接鳴らさないこと**
-- フィルイン: `fillEvery`小節ごとの最終小節後半をスネア連打で上書きし、次小節頭にクラッシュ
+- フィルイン: `FILL_PATTERNS`(off=小節末尾からのオフセットで拍子非依存)。overlay型(通常パターンに重ねる控えめ系)と置き換え型(後半を上書き)があり、crash指定時のみ次小節頭にクラッシュ。頻度は`fillEvery`。デフォルトは控えめ(soft)
 - ビートインジケーター: スケジュール時に`beatEvents`へ拍時刻を積み、rAFループで点灯
 - 設定は `rhythmSettings`(localStorage "rhythmSettings")に保存。BPMは再生中でも即反映
 

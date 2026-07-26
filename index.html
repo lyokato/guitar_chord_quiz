@@ -1655,8 +1655,29 @@ function unlockIosAudio() {
 }
 
 let audioWarmedUp = false;
+let audioReleaseTimer = null;
+
+// 使い終わったらオーディオセッションを手放す (他アプリの音楽再生等を邪魔しない)
+function releaseAudioSession() {
+  if (audioReleaseTimer) { clearTimeout(audioReleaseTimer); audioReleaseTimer = null; }
+  if (silentEl && !silentEl.paused) silentEl.pause();
+  if (audioCtx && audioCtx.state === "running") {
+    try { audioCtx.suspend(); } catch (e) {}
+  }
+}
+
+// 再生の余韻が終わった頃にセッションを解放 (使用中なら保持)
+function scheduleAudioRelease(delayMs) {
+  if (audioReleaseTimer) clearTimeout(audioReleaseTimer);
+  audioReleaseTimer = setTimeout(() => {
+    audioReleaseTimer = null;
+    if (rhythm.playing) return;
+    releaseAudioSession();
+  }, delayMs);
+}
 
 async function getAudioCtx() {
+  if (audioReleaseTimer) { clearTimeout(audioReleaseTimer); audioReleaseTimer = null; }
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   unlockIosAudio();
   if (audioCtx.state !== "running") {
@@ -1716,6 +1737,7 @@ async function playChord(q) {
   if (refPos) pluck(ctx, refPos.midi, t0, 0.10, 2.2); // 基準ルートは控えめに
   const sorted = positions.slice().sort((a, b) => a.midi - b.midi);
   sorted.forEach((p, i) => pluck(ctx, p.midi, t0 + 0.055 * i, 0.22, 2.2));
+  scheduleAudioRelease(3500); // 余韻が終わったらセッション解放
 }
 
 /* ================= RHYTHM BOX ================= */
@@ -1918,6 +1940,7 @@ function stopRhythm() {
   rhythm.beatEvents = [];
   document.querySelectorAll("#beat-dots span").forEach(d => d.classList.remove("active"));
   updateTransportUI();
+  scheduleAudioRelease(1500); // 残響が消えたらセッション解放
 }
 
 function toggleRhythm() {
@@ -2221,6 +2244,18 @@ for (const id of ["game-board", "preview-board"]) {
 }
 window.addEventListener("resize", () => {
   for (const id of ["game-board", "preview-board"]) updateEdgeFades(document.getElementById(id));
+});
+
+// バックグラウンドへ回ったら再生を止め、オーディオセッションを即座に手放す
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    stopRhythm();
+    releaseAudioSession();
+  }
+});
+window.addEventListener("pagehide", () => {
+  stopRhythm();
+  releaseAudioSession();
 });
 </script>
 </body>

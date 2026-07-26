@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Guitar Practice Tools</title>
+<title>ギター練習ツール</title>
 <style>
   :root {
     --bg: #14171c;
@@ -78,14 +78,12 @@
   .timer-row .ring-wrap { margin: 0; }
 
   /* ---- home / title ---- */
-  #screen-home, #screen-title { text-align: center; padding-top: 12vh; position: relative; }
-  #screen-home .logo, #screen-title .logo { font-size: 4rem; margin-bottom: 8px; }
+  #screen-home, #screen-title { text-align: center; }
+  #screen-home { padding-top: 12vh; }
+  #screen-home .logo { font-size: 4rem; margin-bottom: 8px; }
   #screen-home .menu, #screen-title .menu { display: flex; flex-direction: column; gap: 16px; align-items: center; margin-top: 48px; }
   #screen-home .menu button, #screen-title .menu button { width: 260px; }
-  .screen-back { position: absolute; top: 0; left: 0; }
-  /* 戻るボタンは全画面で同一サイズ・同一位置 (コンテンツ左上) */
-  .screen-back, .navbar .icon-btn, #game-header .icon-btn { width: 60px; height: 60px; }
-  .title-art { display: block; margin: 0 auto 14px; }
+  .title-art { display: block; margin: 6vh auto 14px; }
 
   /* ---- RHYTHM BOX ---- */
   .bpm-display { text-align: center; margin-bottom: 6px; }
@@ -119,8 +117,11 @@
     display: flex; align-items: center; justify-content: flex-start; gap: 10px;
     background: var(--bg); margin-top: -24px; padding: 24px 0 10px; margin-bottom: 10px;
   }
+  /* 戻るボタンは全画面共通のnavbar内で同一サイズ・同一位置 */
+  .navbar .icon-btn { width: 60px; height: 60px; }
   .nav-title {
-    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    /* ボタン中心 (上パディング24px + ボタン半径30px) に揃える */
+    position: absolute; left: 50%; top: 54px; transform: translate(-50%, -50%);
     font-size: 1.3rem; font-weight: 700; letter-spacing: .08em;
   }
   .panel { background: var(--panel); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
@@ -212,8 +213,6 @@
   .toolbar { display: flex; gap: 12px; margin-top: 8px; }
 
   /* ---- game ---- */
-  #game-header { display: flex; justify-content: flex-start; align-items: center; margin-bottom: 20px; }
-  #game-header .icon-btn { width: 60px; height: 60px; } /* 進行ボタン(.next-btn)と同サイズ */
   .q-card {
     background: var(--panel); border-radius: 16px;
     padding: 30px 20px; text-align: center; margin-bottom: 20px;
@@ -268,9 +267,11 @@
   @media (max-width: 600px) {
     .app { padding: 16px 10px 40px; }
     .navbar { margin-top: -16px; padding-top: 16px; }
+    .nav-title { top: 46px; }
     h1 { font-size: 1.4rem; }
-    #screen-home, #screen-title { padding-top: 6vh; }
-    #screen-home .logo, #screen-title .logo { font-size: 3rem; }
+    #screen-home { padding-top: 6vh; }
+    #screen-home .logo { font-size: 3rem; }
+    .title-art { margin-top: 3vh; }
     .q-line1 { font-size: .95rem; }
     .q-chord { font-size: 2.8rem; }
     .q-card { padding: 14px 12px; }
@@ -286,11 +287,12 @@
   @media (max-height: 520px) and (orientation: landscape) {
     .app { padding: 10px 16px 24px; }
     .navbar { margin-top: -10px; padding-top: 10px; }
-    #screen-home, #screen-title { padding-top: 2vh; }
-    #screen-home .logo, #screen-title .logo { font-size: 2rem; margin-bottom: 0; }
+    .nav-title { top: 36px; }
+    #screen-home { padding-top: 2vh; }
+    #screen-home .logo { font-size: 2rem; margin-bottom: 0; }
     #screen-home .menu, #screen-title .menu { flex-direction: row; justify-content: center; margin-top: 24px; }
     #screen-home .menu button, #screen-title .menu button { width: auto; min-width: 180px; }
-    #game-header { margin-bottom: 8px; }
+    .title-art { margin-top: 0; width: 120px; }
     .q-card { padding: 8px 12px; margin-bottom: 10px; }
     .q-line1 { font-size: .9rem; }
     .q-chord { font-size: 2rem; margin-top: 2px; }
@@ -298,7 +300,7 @@
     .icon-btn.timer { width: 50px; height: 50px; }
     #countdown-num { font-size: 1.3rem; }
     .control-line { margin-top: 8px; min-height: 56px; }
-    .next-btn, #game-header .icon-btn, .navbar .icon-btn, .screen-back { width: 52px; height: 52px; }
+    .next-btn, .navbar .icon-btn { width: 52px; height: 52px; }
     #fretboard-wrap { padding: 8px 8px 8px; }
     #answer-area { margin-top: 10px; }
   }
@@ -310,18 +312,20 @@
   <!-- ==== ホーム ==== -->
   <div id="screen-home" class="screen active">
     <div class="logo">🎸</div>
-    <h1>Guitar Practice Tools</h1>
+    <h1>ギター練習ツール</h1>
     <div class="menu">
-      <button class="primary big" onclick="showScreen('title')">CHORD QUIZ</button>
-      <button class="primary big" onclick="showScreen('rhythm')">RHYTHM BOX</button>
+      <button class="primary big" onclick="showScreen('title')">コードクイズ</button>
+      <button class="primary big" onclick="showScreen('rhythm')">リズムボックス</button>
     </div>
   </div>
 
   <!-- ==== コードクイズ: タイトル ==== -->
   <div id="screen-title" class="screen">
-    <button class="icon-btn nav screen-back" onclick="navBack()" aria-label="戻る" title="戻る">
-      <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
+    <div class="navbar">
+      <button class="icon-btn nav" onclick="navBack()" aria-label="戻る" title="戻る">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
     <svg class="title-art" viewBox="0 0 160 72" width="170" aria-hidden="true">
       <rect x="4" y="10" width="152" height="52" rx="5" fill="#2b241d"/>
       <rect x="12" y="10" width="5" height="52" rx="2" fill="#d8d2c5"/>
@@ -338,10 +342,10 @@
       <circle cx="70" cy="18" r="7" fill="var(--tone)"/>
       <circle cx="106" cy="27" r="7" fill="var(--tone)"/>
     </svg>
-    <h1>CHORD QUIZ</h1>
+    <h1>コードクイズ</h1>
     <div class="menu">
-      <button class="primary big" onclick="startGame()">START</button>
-      <button class="big ghost" onclick="showScreen('settings')">CONFIG</button>
+      <button class="primary big" onclick="startGame()">スタート</button>
+      <button class="big ghost" onclick="showScreen('settings')">コンフィグ</button>
     </div>
   </div>
 
@@ -351,7 +355,7 @@
       <button class="icon-btn nav" onclick="navBack()" aria-label="戻る" title="戻る">
         <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <span class="nav-title">RHYTHM BOX</span>
+      <span class="nav-title">リズムボックス</span>
     </div>
 
     <div class="panel">
@@ -386,7 +390,7 @@
       <button class="icon-btn nav" onclick="navBack()" aria-label="戻る" title="戻る">
         <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <span class="nav-title">CONFIG</span>
+      <span class="nav-title">コンフィグ</span>
     </div>
 
     <div class="panel">
@@ -494,7 +498,7 @@
 
   <!-- ==== ゲーム ==== -->
   <div id="screen-game" class="screen">
-    <div id="game-header">
+    <div class="navbar">
       <button class="icon-btn nav" onclick="endGame()" aria-label="終了" title="終了">
         <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>

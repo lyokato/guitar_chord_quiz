@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Guitar Practice Tools。単一の `index.html`(HTML/CSS/JS、外部依存なし)で完結するWebアプリ。
-ホーム画面から2つのツールへ遷移する: **CHORD QUIZ**(コードポジションクイズ)と **RHYTHM BOX**(ドラムパターン付きメトロノーム)。
+ホーム画面から2つのツールへ遷移する: **コードクイズ**(CHORD QUIZ)と**リズムボックス**(RHYTHM BOX: ドラムパターン付きメトロノーム)。
 
 ## デザインルール(必読)
 

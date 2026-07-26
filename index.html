@@ -1650,11 +1650,25 @@ function unlockIosAudio() {
   if (p && p.catch) p.catch(() => {});
 }
 
+let audioWarmedUp = false;
+
 async function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   unlockIosAudio();
   if (audioCtx.state !== "running") {
     try { await audioCtx.resume(); } catch (e) {}
+  }
+  // iOS対策: ユーザー操作内で実際にソースノードを1つ再生しないと
+  // 出力が完全に開始されないことがある (初回だけ無音バッファでウォームアップ)
+  if (!audioWarmedUp) {
+    audioWarmedUp = true;
+    try {
+      const buf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      src.connect(audioCtx.destination);
+      src.start(0);
+    } catch (e) {}
   }
   return audioCtx;
 }
@@ -1838,6 +1852,11 @@ const SCHEDULE_AHEAD = 0.12; // 秒
 function scheduleRhythm(ctx) {
   const pat = DRUM_PATTERNS[rhythmSettings.pattern];
   const stepsPerBar = pat.beats * 4;
+  // アンロック直後やタブ復帰でクロックが先にジャンプした場合、
+  // 過去時刻への連続予約(音の団子と沈黙)を避けて現在時刻へ再同期する
+  if (rhythm.nextTime < ctx.currentTime) {
+    rhythm.nextTime = ctx.currentTime + 0.05;
+  }
   while (rhythm.nextTime < ctx.currentTime + SCHEDULE_AHEAD) {
     const stepDur = 60 / rhythmSettings.bpm / 4;
     const step = rhythm.step;

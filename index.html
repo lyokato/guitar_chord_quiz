@@ -1760,7 +1760,7 @@ const FILL_PATTERNS = {
   soft:  { name: "控えめ",         overlay: true,  crash: false,
            hits: [ { off: -2, inst: "snare", gain: 0.45 }, { off: -1, inst: "snare", gain: 0.7 } ] },
   oh:    { name: "オープンハット", overlay: true,  crash: false,
-           hits: [ { off: -4, inst: "oh" } ] },
+           hits: [ { off: -4, inst: "oh", gain: 1.5 } ] },
   tom:   { name: "タム回し",       overlay: false, crash: true,
            hits: [ { off: -8, inst: "tomH" }, { off: -6, inst: "tomM" }, { off: -4, inst: "tomL" }, { off: -2, inst: "snare" } ] },
   snare: { name: "スネア連打",     overlay: false, crash: true,
@@ -1851,7 +1851,11 @@ const DRUM_SOUNDS = {
     o.start(t); o.stop(t + 0.35);
   },
   hh(ctx, t)  { playNoise(ctx, t, { peak: 0.22, dur: 0.05, filterType: "highpass", freq: 7500 }); },
-  oh(ctx, t)  { playNoise(ctx, t, { peak: 0.22, dur: 0.32, filterType: "highpass", freq: 7000 }); },
+  oh(ctx, t, vel = 1) {
+    // クローズドとの差がはっきり出るよう、長め・大きめ・低めの帯域+シズル成分
+    playNoise(ctx, t, { peak: 0.38 * vel, dur: 0.55, filterType: "highpass", freq: 5500 });
+    playNoise(ctx, t, { peak: 0.18 * vel, dur: 0.45, filterType: "bandpass", freq: 9000 });
+  },
   crash(ctx, t) { playNoise(ctx, t, { peak: 0.3, dur: 1.1, filterType: "highpass", freq: 5000 }); },
   click(ctx, t, accent) {
     const o = ctx.createOscillator();

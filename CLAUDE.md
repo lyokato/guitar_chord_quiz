@@ -14,7 +14,7 @@ UIの生成・変更・スタイル調整を行う際は、**必ず先に `DESIG
 - `index.html` — アプリ本体(すべてここ)。単一ファイル構成を維持する。CSS/JSを別ファイルに分割しない
 - `DESIGN.md` — UIデザインシステム(AI向けデザイン要求定義)
 - `README.md` — 人間向け概要
-- デプロイ: `main` へ push すると GitHub Pages に自動反映(https://lyokato.github.io/guitar_chord_quiz/)
+- デプロイ: `main` へ push すると GitHub Pages に自動反映(https://lyokato.github.io/guitar_practice/)
 
 ## アーキテクチャ(index.html内のデータモデル)
 

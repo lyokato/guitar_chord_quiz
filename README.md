@@ -2,7 +2,7 @@
 
 ギター練習補助ツール集。単一の `index.html` で完結(ビルド不要・サーバー不要)。
 
-- 公開URL: https://lyokato.github.io/guitar_chord_quiz/
+- 公開URL: https://lyokato.github.io/guitar_practice/
 - **コードクイズ** — コードポジションを反射的に思い出す訓練クイズ
 - **リズムボックス** — ドラムパターン付きメトロノーム(練習曲の伴奏用)
 

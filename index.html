@@ -2282,11 +2282,11 @@ function showInstallHint(mode) {
   const hint = document.getElementById("install-hint");
   const text = document.getElementById("install-hint-text");
   if (mode === "prompt") {
-    text.textContent = "ホーム画面に追加すると、アプリのように全画面で使えます。";
+    text.textContent = "アプリのアイコンをホーム画面に作り、そこから起動することが出来るようになります。";
     document.getElementById("btn-install").style.display = "";
   } else {
-    text.innerHTML = "ホーム画面に追加すると、アプリのように全画面で使えます。<br>" +
-      "ブラウザの共有ボタン <span class=\"share-ico\">↑</span> から「ホーム画面に追加」を選んでください。";
+    text.innerHTML = "ブラウザの共有ボタン <span class=\"share-ico\">↑</span> から「ホーム画面に追加」を選ぶことで、" +
+      "アプリのアイコンをホーム画面に作り、そこから起動することが出来るようになります。";
   }
   hint.style.display = "block";
 }

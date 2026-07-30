@@ -12,6 +12,7 @@ UIの生成・変更・スタイル調整を行う際は、**必ず先に `DESIG
 ## ファイル構成
 
 - `index.html` — アプリ本体(すべてここ)。単一ファイル構成を維持する。CSS/JSを別ファイルに分割しない
+- `manifest.webmanifest` / `icon-*.png` / `apple-touch-icon.png` — PWA用(ホーム画面追加・standalone起動)。アイコンはPWA要件でファイル必須のため単一ファイル構成の例外
 - `DESIGN.md` — UIデザインシステム(AI向けデザイン要求定義)
 - `README.md` — 人間向け概要
 - デプロイ: `main` へ push すると GitHub Pages に自動反映(https://lyokato.github.io/guitar_practice/)

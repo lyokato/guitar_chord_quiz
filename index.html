@@ -92,6 +92,18 @@
   #screen-home .menu, #screen-title .menu { display: flex; flex-direction: column; gap: 16px; align-items: center; margin-top: 48px; }
   #screen-home .menu button, #screen-title .menu button { width: 260px; }
   .title-art { display: block; margin: 6vh auto 14px; }
+  #install-hint {
+    max-width: 420px; margin: 40px auto 0;
+    background: var(--panel); border-radius: 12px; padding: 16px;
+    text-align: left;
+  }
+  #install-hint p { color: var(--sub); font-size: .85rem; line-height: 1.7; margin-bottom: 12px; }
+  #install-hint .share-ico {
+    display: inline-block; border: 1.5px solid var(--sub); border-radius: 4px;
+    width: 1.1em; height: 1.1em; line-height: 1; text-align: center;
+    vertical-align: -2px; font-size: .9em;
+  }
+  .install-actions { display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
 
   /* ---- RHYTHM BOX ---- */
   .cfg-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
@@ -331,6 +343,15 @@
     <div class="menu">
       <button class="primary big" onclick="showScreen('title')">コードクイズ</button>
       <button class="primary big" onclick="showScreen('rhythm')">リズムボックス</button>
+    </div>
+
+    <!-- ホーム画面追加の案内 (未インストールのスマホのみ表示) -->
+    <div id="install-hint" style="display:none">
+      <p id="install-hint-text"></p>
+      <div class="install-actions">
+        <button id="btn-install" class="primary" style="display:none" onclick="promptInstall()">ホーム画面に追加</button>
+        <button class="small ghost" onclick="dismissInstallHint()">閉じる</button>
+      </div>
     </div>
   </div>
 
@@ -2239,6 +2260,60 @@ function updateTimerButtons() {
   r.disabled = !cd.paused;
 }
 
+/* ================= ホーム画面追加の案内 ================= */
+
+let deferredInstallPrompt = null;
+
+function isStandaloneApp() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function installHintDismissed() {
+  try { return localStorage.getItem("installHintDismissed") === "1"; } catch (e) { return true; }
+}
+
+function dismissInstallHint() {
+  try { localStorage.setItem("installHintDismissed", "1"); } catch (e) {}
+  document.getElementById("install-hint").style.display = "none";
+}
+
+function showInstallHint(mode) {
+  if (isStandaloneApp() || installHintDismissed()) return;
+  const hint = document.getElementById("install-hint");
+  const text = document.getElementById("install-hint-text");
+  if (mode === "prompt") {
+    text.textContent = "ホーム画面に追加すると、アプリのように全画面で使えます。";
+    document.getElementById("btn-install").style.display = "";
+  } else {
+    text.innerHTML = "ホーム画面に追加すると、アプリのように全画面で使えます。<br>" +
+      "ブラウザの共有ボタン <span class=\"share-ico\">↑</span> から「ホーム画面に追加」を選んでください。";
+  }
+  hint.style.display = "block";
+}
+
+async function promptInstall() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const result = await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  if (result && result.outcome === "accepted") dismissInstallHint();
+}
+
+// Android/Chrome系: インストール可能になるとこのイベントが来る → ワンタップ導線を出す
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  showInstallHint("prompt");
+});
+
+function initInstallHint() {
+  // iOS(WebKit)はインストールAPIが無いため、共有メニューの手順を案内する
+  const ua = navigator.userAgent;
+  const isIos = /iPhone|iPad|iPod/.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); // iPadOS
+  if (isIos) showInstallHint("ios");
+}
+
 /* ================= 初期化 ================= */
 
 loadSettings();
@@ -2249,6 +2324,7 @@ buildRhythmUI();
 // 初期履歴エントリ (リロード時のハッシュに関わらずホームから開始)
 history.replaceState({ screen: "home", depth: 0 }, "", "#home");
 switchDom("home");
+initInstallHint();
 
 for (const id of ["game-board", "preview-board"]) {
   const b = document.getElementById(id);

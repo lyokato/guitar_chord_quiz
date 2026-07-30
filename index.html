@@ -2326,6 +2326,11 @@ history.replaceState({ screen: "home", depth: 0 }, "", "#home");
 switchDom("home");
 initInstallHint();
 
+// オフライン起動用のService Worker (ネットワーク優先・失敗時キャッシュ)
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
 for (const id of ["game-board", "preview-board"]) {
   const b = document.getElementById(id);
   b.addEventListener("scroll", () => updateEdgeFades(b), { passive: true });

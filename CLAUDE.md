@@ -56,7 +56,7 @@ UIの生成・変更・スタイル調整を行う際は、**必ず先に `DESIG
 ## RHYTHM BOX のアーキテクチャ
 
 - `DRUM_PATTERNS`: 16分グリッド(拍あたり4ステップ)でパターン定義。`beats`=拍子, `swing`=シャッフル(8分裏を3連位置へ), `tracks`={楽器: ステップ配列}, `backing`=バッキングコードの発音位置 [{step, dur(ステップ数), gain}](パターンごとのコンピング。スウィングはドラムと同じ規則で自動適用)
-- バッキングコード: `BACKING_CHORDS`(A/B/C/D/E/G × m7・7 のワンコードバンプ。ペンタ等のアドリブ練習用)。構成音は`QUALITIES.tones`から導出し、R-5-♭7-3(10度)のスプレッドボイシング・ルートはE2〜D#3。音色はクイズの`pluck`を低音量(0.11×gain)+12msストラムで流用。`rhythmSettings.backing`("none" | コード名)で選択、フィル小節でも通常通り鳴らす
+- バッキングコード: `BACKING_CHORDS`(A/B/C/D/E/G × m7・7 のワンコードバンプ。ペンタ等のアドリブ練習用)。構成音は`QUALITIES.tones`から導出し、R-5-♭7-3(10度)のスプレッドボイシング・ルートはE2〜D#3。音色は2層: アタック=クイズの`pluck`流用(0.09×gain)+サスティン=`padNote`(デチューン三角波2本+ノコギリ波、音価いっぱい持続してリリース。0.055×gain)。12msストラムずらし。`rhythmSettings.backing`("none" | コード名)で選択、フィル小節でも通常通り鳴らす
 - `DRUM_SOUNDS`: kick/snare/hh/oh/crash/click をWeb Audioで合成(サンプル不使用)。ノイズは共有バッファ
 - スケジューラ: ルックアヘッド方式(25ms間隔のsetIntervalでAudioContextクロックの0.12秒先まで予約)。**setIntervalで直接鳴らさないこと**
 - フィルイン: `FILL_PATTERNS`(off=小節末尾からのオフセットで拍子非依存)。overlay型(通常パターンに重ねる控えめ系)と置き換え型(後半を上書き)があり、crash指定時のみ次小節頭にクラッシュ。頻度は`fillEvery`。デフォルトは控えめ(soft)

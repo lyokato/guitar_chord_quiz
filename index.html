@@ -1783,16 +1783,16 @@ const DRUM_PATTERNS = {
   click:   { name: "クリック",   beats: 4, tracks: { click: [0, 4, 8, 12] },
              backing: [ { step: 0, dur: 16 } ] },
   beat8:   { name: "8ビート",    beats: 4, tracks: { hh: [0,2,4,6,8,10,12,14], kick: [0,8,10], snare: [4,12] },
-             backing: [ { step: 0, dur: 3 }, { step: 6, dur: 2 }, { step: 10, dur: 3 } ] },
+             backing: [ { step: 0, dur: 4 }, { step: 6, dur: 2 }, { step: 10, dur: 4 } ] },
   beat16:  { name: "16ビート",   beats: 4, tracks: { hh: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15], kick: [0,6,8], snare: [4,12] },
-             backing: [ { step: 0, dur: 2 }, { step: 6, dur: 1 }, { step: 10, dur: 2 }, { step: 14, dur: 1, gain: 0.7 } ] },
+             backing: [ { step: 0, dur: 3 }, { step: 6, dur: 1 }, { step: 10, dur: 2 }, { step: 14, dur: 1, gain: 0.7 } ] },
   four:    { name: "4つ打ち",    beats: 4, tracks: { kick: [0,4,8,12], oh: [2,6,10,14], snare: [4,12] },
-             backing: [ { step: 2, dur: 1 }, { step: 6, dur: 1 }, { step: 10, dur: 1 }, { step: 14, dur: 1 } ] },
+             backing: [ { step: 2, dur: 1.5 }, { step: 6, dur: 1.5 }, { step: 10, dur: 1.5 }, { step: 14, dur: 1.5 } ] },
   shuffle: { name: "シャッフル", beats: 4, swing: true, tracks: { hh: [0,2,4,6,8,10,12,14], kick: [0,8], snare: [4,12] },
              // ブルースのリズムギター風: 8分刻みのチャカ (表を強く・裏を弱く)
              backing: [0,2,4,6,8,10,12,14].map(s => ({ step: s, dur: 1.5, gain: s % 4 === 0 ? 0.9 : 0.55 })) },
   waltz:   { name: "3/4",       beats: 3, tracks: { kick: [0], hh: [4,8], snare: [8] },
-             backing: [ { step: 0, dur: 4 }, { step: 4, dur: 2 }, { step: 8, dur: 2 } ] }
+             backing: [ { step: 0, dur: 4 }, { step: 4, dur: 3 }, { step: 8, dur: 3 } ] }
 };
 
 // バッキングコード: ペンタトニック等のアドリブ練習用ワンコードバンプ。
@@ -1930,13 +1930,50 @@ const DRUM_SOUNDS = {
 
 /* ---- バッキングコード音源 ---- */
 
-// pluck(クイズのコード再生と同じギター風合成音)を低音量で流用。
+// 伸びのあるパッド音: pluckと違い減衰しきらず、音価(dur)いっぱいサスティンしてから
+// リリースする。デチューンした三角波2本のコーラス感+控えめなノコギリ波の艶。
+// durはテンポに比例するので、テンポを下げるほど長く鳴る
+function padNote(ctx, midi, t, gain, dur) {
+  const freq = 440 * Math.pow(2, (midi - 69) / 12);
+  const rel = 0.25; // リリース秒
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(Math.min(freq * 4, 2800), t);
+  filter.frequency.exponentialRampToValueAtTime(Math.max(freq * 2, 800), t + Math.min(dur, 1.2));
+  filter.Q.value = 0.7;
+
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.0001, t);
+  env.gain.exponentialRampToValueAtTime(gain, t + 0.03);
+  env.gain.exponentialRampToValueAtTime(gain * 0.65, t + dur); // わずかに減衰しつつ持続
+  env.gain.exponentialRampToValueAtTime(0.0001, t + dur + rel);
+
+  // [波形, デチューン(セント), 音量比]
+  for (const [type, cents, vol] of [["triangle", -6, 1], ["triangle", 6, 1], ["sawtooth", 0, 0.22]]) {
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.value = freq;
+    o.detune.value = cents;
+    const g = ctx.createGain();
+    g.gain.value = vol;
+    o.connect(g);
+    g.connect(filter);
+    o.start(t);
+    o.stop(t + dur + rel + 0.05);
+  }
+  filter.connect(env);
+  env.connect(ctx.destination);
+}
+
+// アタック(pluck=ギター風ストラム)+サスティン(padNote)の2層。
 // 12msずつずらしてストラム感を出す
 function playBackingChord(ctx, t, dur, gain = 1) {
   const chord = BACKING_CHORDS[rhythmSettings.backing];
   if (!chord) return;
   chord.midis.forEach((midi, i) => {
-    pluck(ctx, midi, t + 0.012 * i, 0.11 * gain, Math.max(dur, 0.18));
+    const ts = t + 0.012 * i;
+    pluck(ctx, midi, ts, 0.09 * gain, Math.max(dur, 0.18));
+    padNote(ctx, midi, ts, 0.055 * gain, Math.max(dur, 0.25));
   });
 }
 

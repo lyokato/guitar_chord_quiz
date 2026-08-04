@@ -1809,8 +1809,11 @@ for (const def of BACKING_CHORD_DEFS) {
     const rootMidi = 40 + ((def.pc - 4 + 12) % 12); // E2(40)〜D#3(51)
     const third = q.tones.find(t => t === 3 || t === 4);
     const seventh = q.tones.find(t => t === 10 || t === 11);
-    const iv = [0, 7, seventh, 12 + third];
-    BACKING_CHORDS[def.name + q.suffix] = { midis: iv.map(i => rootMidi + i) };
+    BACKING_CHORDS[def.name + q.suffix] = {
+      midis: [0, 7, seventh, 12 + third].map(i => rootMidi + i),          // 中域ボイシング
+      high:  [seventh, 12 + third, 19, 24].map(i => rootMidi + i),       // 上位展開 (リフト用)
+      bass:  rootMidi - 12                                                // ベース音 (E1〜D#2)
+    };
   }
 }
 
@@ -1965,15 +1968,42 @@ function padNote(ctx, midi, t, gain, dur) {
   env.connect(ctx.destination);
 }
 
-// アタック(pluck=ギター風ストラム)+サスティン(padNote)の2層。
-// 12msずつずらしてストラム感を出す
-function playBackingChord(ctx, t, dur, gain = 1) {
+// ルートのベース音: サイン+三角のシンプルな低音。コードより1オクターブ下
+function bassNote(ctx, midi, t, gain, dur) {
+  const freq = 440 * Math.pow(2, (midi - 69) / 12);
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.0001, t);
+  env.gain.exponentialRampToValueAtTime(gain, t + 0.015);
+  env.gain.exponentialRampToValueAtTime(gain * 0.5, t + dur);
+  env.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.12);
+  for (const [type, vol] of [["sine", 1], ["triangle", 0.35]]) {
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.value = freq;
+    const g = ctx.createGain();
+    g.gain.value = vol;
+    o.connect(g);
+    g.connect(env);
+    o.start(t);
+    o.stop(t + dur + 0.2);
+  }
+  env.connect(ctx.destination);
+}
+
+// コード1発の発音。パッド主体+薄いpluckアタックの2層。
+// opt.voicing: "mid"(既定) | "high"=上位展開 / opt.bass: ルートのベースを重ねる
+// opt.arp: ゆっくり順に鳴らすアルペジオ (フレーズ末のターンアラウンド用)
+function playBackingChord(ctx, t, dur, gain = 1, opt = {}) {
   const chord = BACKING_CHORDS[rhythmSettings.backing];
   if (!chord) return;
-  chord.midis.forEach((midi, i) => {
-    const ts = t + 0.012 * i;
-    pluck(ctx, midi, ts, 0.09 * gain, Math.max(dur, 0.18));
-    padNote(ctx, midi, ts, 0.055 * gain, Math.max(dur, 0.25));
+  if (opt.bass) bassNote(ctx, chord.bass, t, 0.26 * gain, Math.max(dur, 0.3));
+  const midis = opt.voicing === "high" ? chord.high : chord.midis;
+  const strum = opt.arp ? 0.06 : 0.012;
+  if (opt.arp) dur = Math.max(dur, 0.45);
+  midis.forEach((midi, i) => {
+    const ts = t + strum * i;
+    pluck(ctx, midi, ts, 0.04 * gain, Math.max(dur, 0.18));
+    padNote(ctx, midi, ts, 0.07 * gain, Math.max(dur, 0.25));
   });
 }
 
@@ -2027,11 +2057,21 @@ function scheduleRhythm(ctx) {
         (rhythm.bar % rhythmSettings.fillEvery) === 0 && fp.crash) {
       DRUM_SOUNDS.crash(ctx, t);
     }
-    // バッキングコード (選択時のみ)。フィル小節でも通常通り鳴らす
+    // バッキングコード (選択時のみ)。フィル小節でも通常通り鳴らす。
+    // ワンコードでも単調にならないよう4小節フレーズで変化をつける:
+    // 小節頭はベース+コード / 奇数小節の最後のヒットは上位展開でリフト /
+    // 4小節目の最後はゆっくりアルペジオでターンアラウンド
     if (rhythmSettings.backing !== "none" && pat.backing) {
-      for (const h of pat.backing) {
-        if (h.step === step) playBackingChord(ctx, t, h.dur * stepDur, h.gain ?? 1);
-      }
+      const phrase = rhythm.bar % 4;
+      pat.backing.forEach((h, hi) => {
+        if (h.step !== step) return;
+        const isLast = hi === pat.backing.length - 1;
+        playBackingChord(ctx, t, h.dur * stepDur, h.gain ?? 1, {
+          bass: hi === 0,
+          voicing: isLast && phrase % 2 === 1 ? "high" : "mid",
+          arp: isLast && phrase === 3
+        });
+      });
     }
     if (step % 4 === 0) rhythm.beatEvents.push({ time: t, beat: step / 4 });
 

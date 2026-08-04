@@ -405,6 +405,10 @@
         <select id="sel-fill-every"></select>
       </div>
       <div class="cfg-row">
+        <label for="sel-backing">バッキング</label>
+        <select id="sel-backing"></select>
+      </div>
+      <div class="cfg-row">
         <label for="bpm-slider">テンポ</label>
         <span class="bpm-num"><span id="bpm-value">100</span> BPM</span>
       </div>
@@ -1773,14 +1777,42 @@ async function playChord(q) {
 
 // 16分グリッドのステップ表記。beats=1小節の拍数 (grid=拍あたり4ステップ固定)
 // swing: 8分裏 (拍内ステップ2) を3連の位置へ遅らせる
+// backing: バッキングコードの発音位置 {step, dur=長さ(ステップ数), gain=音量係数}。
+//          パターンのノリに合わせたコンピング。スウィングはドラムと同じ規則で自動適用される
 const DRUM_PATTERNS = {
-  click:   { name: "クリック",   beats: 4, tracks: { click: [0, 4, 8, 12] } },
-  beat8:   { name: "8ビート",    beats: 4, tracks: { hh: [0,2,4,6,8,10,12,14], kick: [0,8,10], snare: [4,12] } },
-  beat16:  { name: "16ビート",   beats: 4, tracks: { hh: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15], kick: [0,6,8], snare: [4,12] } },
-  four:    { name: "4つ打ち",    beats: 4, tracks: { kick: [0,4,8,12], oh: [2,6,10,14], snare: [4,12] } },
-  shuffle: { name: "シャッフル", beats: 4, swing: true, tracks: { hh: [0,2,4,6,8,10,12,14], kick: [0,8], snare: [4,12] } },
-  waltz:   { name: "3/4",       beats: 3, tracks: { kick: [0], hh: [4,8], snare: [8] } }
+  click:   { name: "クリック",   beats: 4, tracks: { click: [0, 4, 8, 12] },
+             backing: [ { step: 0, dur: 16 } ] },
+  beat8:   { name: "8ビート",    beats: 4, tracks: { hh: [0,2,4,6,8,10,12,14], kick: [0,8,10], snare: [4,12] },
+             backing: [ { step: 0, dur: 3 }, { step: 6, dur: 2 }, { step: 10, dur: 3 } ] },
+  beat16:  { name: "16ビート",   beats: 4, tracks: { hh: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15], kick: [0,6,8], snare: [4,12] },
+             backing: [ { step: 0, dur: 2 }, { step: 6, dur: 1 }, { step: 10, dur: 2 }, { step: 14, dur: 1, gain: 0.7 } ] },
+  four:    { name: "4つ打ち",    beats: 4, tracks: { kick: [0,4,8,12], oh: [2,6,10,14], snare: [4,12] },
+             backing: [ { step: 2, dur: 1 }, { step: 6, dur: 1 }, { step: 10, dur: 1 }, { step: 14, dur: 1 } ] },
+  shuffle: { name: "シャッフル", beats: 4, swing: true, tracks: { hh: [0,2,4,6,8,10,12,14], kick: [0,8], snare: [4,12] },
+             // ブルースのリズムギター風: 8分刻みのチャカ (表を強く・裏を弱く)
+             backing: [0,2,4,6,8,10,12,14].map(s => ({ step: s, dur: 1.5, gain: s % 4 === 0 ? 0.9 : 0.55 })) },
+  waltz:   { name: "3/4",       beats: 3, tracks: { kick: [0], hh: [4,8], snare: [8] },
+             backing: [ { step: 0, dur: 4 }, { step: 4, dur: 2 }, { step: 8, dur: 2 } ] }
 };
+
+// バッキングコード: ペンタトニック等のアドリブ練習用ワンコードバンプ。
+// 構成音はQUALITIES.tonesから導出し、R-5-♭7-3(10度) のスプレッドボイシングで濁りを避ける。
+// ルートはE2〜D#3のギター低中域に収める
+const BACKING_CHORD_DEFS = [
+  { pc: 9,  name: "A" }, { pc: 11, name: "B" }, { pc: 0, name: "C" },
+  { pc: 2,  name: "D" }, { pc: 4,  name: "E" }, { pc: 7, name: "G" }
+];
+const BACKING_CHORDS = {};
+for (const def of BACKING_CHORD_DEFS) {
+  for (const qual of ["m7", "dom7"]) {
+    const q = QUALITIES[qual];
+    const rootMidi = 40 + ((def.pc - 4 + 12) % 12); // E2(40)〜D#3(51)
+    const third = q.tones.find(t => t === 3 || t === 4);
+    const seventh = q.tones.find(t => t === 10 || t === 11);
+    const iv = [0, 7, seventh, 12 + third];
+    BACKING_CHORDS[def.name + q.suffix] = { midis: iv.map(i => rootMidi + i) };
+  }
+}
 
 // フィルインパターン。off = 小節末尾からのステップオフセット (拍子に依存しない)
 // overlay=true: 通常パターンに重ねるだけ (控えめ) / false: 小節後半をフィルで置き換える
@@ -1803,7 +1835,7 @@ const FILL_OPTIONS = [
   { key: 8, name: "8小節ごと" }
 ];
 
-const rhythmSettings = { bpm: 100, pattern: "beat8", fillEvery: 4, fillPattern: "soft" };
+const rhythmSettings = { bpm: 100, pattern: "beat8", fillEvery: 4, fillPattern: "soft", backing: "none" };
 
 function saveRhythmSettings() {
   try { localStorage.setItem("rhythmSettings", JSON.stringify(rhythmSettings)); } catch (e) {}
@@ -1815,6 +1847,7 @@ function loadRhythmSettings() {
     if (DRUM_PATTERNS[s.pattern]) rhythmSettings.pattern = s.pattern;
     if (FILL_OPTIONS.some(o => o.key === s.fillEvery)) rhythmSettings.fillEvery = s.fillEvery;
     if (FILL_PATTERNS[s.fillPattern]) rhythmSettings.fillPattern = s.fillPattern;
+    if (s.backing === "none" || BACKING_CHORDS[s.backing]) rhythmSettings.backing = s.backing;
   } catch (e) {}
 }
 
@@ -1895,6 +1928,18 @@ const DRUM_SOUNDS = {
   }
 };
 
+/* ---- バッキングコード音源 ---- */
+
+// pluck(クイズのコード再生と同じギター風合成音)を低音量で流用。
+// 12msずつずらしてストラム感を出す
+function playBackingChord(ctx, t, dur, gain = 1) {
+  const chord = BACKING_CHORDS[rhythmSettings.backing];
+  if (!chord) return;
+  chord.midis.forEach((midi, i) => {
+    pluck(ctx, midi, t + 0.012 * i, 0.11 * gain, Math.max(dur, 0.18));
+  });
+}
+
 /* ---- ルックアヘッドスケジューラ ---- */
 
 const rhythm = {
@@ -1944,6 +1989,12 @@ function scheduleRhythm(ctx) {
     if (step === 0 && rhythm.bar > 0 && rhythmSettings.fillEvery > 0 &&
         (rhythm.bar % rhythmSettings.fillEvery) === 0 && fp.crash) {
       DRUM_SOUNDS.crash(ctx, t);
+    }
+    // バッキングコード (選択時のみ)。フィル小節でも通常通り鳴らす
+    if (rhythmSettings.backing !== "none" && pat.backing) {
+      for (const h of pat.backing) {
+        if (h.step === step) playBackingChord(ctx, t, h.dur * stepDur, h.gain ?? 1);
+      }
     }
     if (step % 4 === 0) rhythm.beatEvents.push({ time: t, beat: step / 4 });
 
@@ -2054,6 +2105,13 @@ function buildRhythmUI() {
     FILL_OPTIONS.map(o => [String(o.key), o.name]),
     String(rhythmSettings.fillEvery),
     v => { rhythmSettings.fillEvery = Number(v); saveRhythmSettings(); }
+  );
+
+  fillSelect(
+    document.getElementById("sel-backing"),
+    [["none", "なし"], ...Object.keys(BACKING_CHORDS).map(k => [k, k])],
+    rhythmSettings.backing,
+    v => { rhythmSettings.backing = v; saveRhythmSettings(); }
   );
 
   const slider = document.getElementById("bpm-slider");

@@ -1777,22 +1777,75 @@ async function playChord(q) {
 
 // 16分グリッドのステップ表記。beats=1小節の拍数 (grid=拍あたり4ステップ固定)
 // swing: 8分裏 (拍内ステップ2) を3連の位置へ遅らせる
-// backing: バッキングコードの発音位置 {step, dur=長さ(ステップ数), gain=音量係数}。
-//          パターンのノリに合わせたコンピング。スウィングはドラムと同じ規則で自動適用される
+// backing: バッキングのコンピング譜面。bars=小節バリエーション配列, seq=小節の並び
+//          (小節番号 % seq.length で参照)。スウィングはドラムと同じ規則で自動適用される
+// hit: {step, dur=長さ(ステップ数), voice, bass=ベースを重ねる, gain=音量係数}
+// voice: bass=ベース単音 / shell=3度+7度のガイドトーン / mid=中域コード / high=上位展開 /
+//        d5・d6・d7=ルート+5度/6度/♭7のダイアド (ブギー用) / arp=ゆっくりアルペジオ
 const DRUM_PATTERNS = {
   click:   { name: "クリック",   beats: 4, tracks: { click: [0, 4, 8, 12] },
-             backing: [ { step: 0, dur: 16 } ] },
+             backing: { seq: [0, 1, 0, 2], bars: [
+               [ { step: 0, dur: 16, voice: "mid",  bass: true } ],
+               [ { step: 0, dur: 16, voice: "high", bass: true } ],
+               [ { step: 0, dur: 16, voice: "arp",  bass: true } ]
+             ] } },
   beat8:   { name: "8ビート",    beats: 4, tracks: { hh: [0,2,4,6,8,10,12,14], kick: [0,8,10], snare: [4,12] },
-             backing: [ { step: 0, dur: 4 }, { step: 6, dur: 2 }, { step: 10, dur: 4 } ] },
+             backing: { seq: [0, 1, 0, 2], bars: [
+               [ { step: 0, dur: 4, voice: "mid", bass: true }, { step: 6, dur: 2, voice: "shell" },
+                 { step: 10, dur: 4, voice: "mid" } ],
+               [ { step: 0, dur: 3, voice: "mid", bass: true }, { step: 6, dur: 1, voice: "shell" },
+                 { step: 8, dur: 2, voice: "bass" }, { step: 10, dur: 4, voice: "high" } ],
+               [ { step: 0, dur: 4, voice: "mid", bass: true }, { step: 6, dur: 2, voice: "shell" },
+                 { step: 10, dur: 2, voice: "mid" }, { step: 14, dur: 2, voice: "arp" } ]
+             ] } },
   beat16:  { name: "16ビート",   beats: 4, tracks: { hh: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15], kick: [0,6,8], snare: [4,12] },
-             backing: [ { step: 0, dur: 3 }, { step: 6, dur: 1 }, { step: 10, dur: 2 }, { step: 14, dur: 1, gain: 0.7 } ] },
+             backing: { seq: [0, 1, 0, 2], bars: [
+               [ { step: 0, dur: 3, voice: "mid", bass: true }, { step: 6, dur: 1, voice: "shell" },
+                 { step: 10, dur: 2, voice: "mid" }, { step: 14, dur: 1, voice: "shell", gain: 0.7 } ],
+               [ { step: 0, dur: 2, voice: "mid", bass: true }, { step: 7, dur: 1, voice: "shell" },
+                 { step: 10, dur: 2, voice: "high" }, { step: 12, dur: 1, voice: "bass" },
+                 { step: 14, dur: 1, voice: "shell", gain: 0.7 } ],
+               [ { step: 0, dur: 3, voice: "mid", bass: true }, { step: 6, dur: 1, voice: "shell" },
+                 { step: 10, dur: 2, voice: "high" }, { step: 14, dur: 2, voice: "arp" } ]
+             ] } },
   four:    { name: "4つ打ち",    beats: 4, tracks: { kick: [0,4,8,12], oh: [2,6,10,14], snare: [4,12] },
-             backing: [ { step: 2, dur: 1.5 }, { step: 6, dur: 1.5 }, { step: 10, dur: 1.5 }, { step: 14, dur: 1.5 } ] },
+             backing: { seq: [0, 1, 0, 2], bars: [
+               [ { step: 0, dur: 2, voice: "bass" }, { step: 2, dur: 1.5, voice: "mid" },
+                 { step: 6, dur: 1.5, voice: "mid" }, { step: 8, dur: 2, voice: "bass" },
+                 { step: 10, dur: 1.5, voice: "mid" }, { step: 14, dur: 1.5, voice: "shell" } ],
+               [ { step: 0, dur: 2, voice: "bass" }, { step: 2, dur: 1.5, voice: "mid" },
+                 { step: 6, dur: 1.5, voice: "shell" }, { step: 8, dur: 2, voice: "bass" },
+                 { step: 10, dur: 1.5, voice: "high" }, { step: 14, dur: 1.5, voice: "high" } ],
+               [ { step: 0, dur: 2, voice: "bass" }, { step: 2, dur: 1.5, voice: "mid" },
+                 { step: 6, dur: 1.5, voice: "mid" }, { step: 8, dur: 2, voice: "bass" },
+                 { step: 10, dur: 1.5, voice: "high" }, { step: 14, dur: 2, voice: "arp" } ]
+             ] } },
   shuffle: { name: "シャッフル", beats: 4, swing: true, tracks: { hh: [0,2,4,6,8,10,12,14], kick: [0,8], snare: [4,12] },
-             // ブルースのリズムギター風: 8分刻みのチャカ (表を強く・裏を弱く)
-             backing: [0,2,4,6,8,10,12,14].map(s => ({ step: s, dur: 1.5, gain: s % 4 === 0 ? 0.9 : 0.55 })) },
+             // ブルースのブギーリフ: R+5度⇔R+6度の刻み。Bバリエーションは3拍目でR+♭7へ持ち上げる
+             backing: { seq: [0, 1, 0, 2], bars: [
+               [ { step: 0, dur: 2, voice: "d5", bass: true }, { step: 2, dur: 2, voice: "d6", gain: 0.7 },
+                 { step: 4, dur: 2, voice: "d5" }, { step: 6, dur: 2, voice: "d6", gain: 0.7 },
+                 { step: 8, dur: 2, voice: "d5", bass: true }, { step: 10, dur: 2, voice: "d6", gain: 0.7 },
+                 { step: 12, dur: 2, voice: "d5" }, { step: 14, dur: 2, voice: "d6", gain: 0.7 } ],
+               [ { step: 0, dur: 2, voice: "d5", bass: true }, { step: 2, dur: 2, voice: "d6", gain: 0.7 },
+                 { step: 4, dur: 2, voice: "d7" }, { step: 6, dur: 2, voice: "d6", gain: 0.7 },
+                 { step: 8, dur: 2, voice: "d5", bass: true }, { step: 10, dur: 2, voice: "d6", gain: 0.7 },
+                 { step: 12, dur: 2, voice: "d7" }, { step: 14, dur: 2, voice: "d6", gain: 0.7 } ],
+               [ { step: 0, dur: 2, voice: "d5", bass: true }, { step: 2, dur: 2, voice: "d6", gain: 0.7 },
+                 { step: 4, dur: 2, voice: "d5" }, { step: 6, dur: 2, voice: "d6", gain: 0.7 },
+                 { step: 8, dur: 2, voice: "d5", bass: true }, { step: 10, dur: 2, voice: "d6", gain: 0.7 },
+                 { step: 12, dur: 4, voice: "arp" } ]
+             ] } },
   waltz:   { name: "3/4",       beats: 3, tracks: { kick: [0], hh: [4,8], snare: [8] },
-             backing: [ { step: 0, dur: 4 }, { step: 4, dur: 3 }, { step: 8, dur: 3 } ] }
+             // ワルツの基本形: 1拍目ベース+2・3拍目コード (ブンチャッチャ)
+             backing: { seq: [0, 0, 1, 2], bars: [
+               [ { step: 0, dur: 4, voice: "bass" }, { step: 4, dur: 3, voice: "mid" },
+                 { step: 8, dur: 3, voice: "mid" } ],
+               [ { step: 0, dur: 4, voice: "bass" }, { step: 4, dur: 3, voice: "mid" },
+                 { step: 8, dur: 3, voice: "high" } ],
+               [ { step: 0, dur: 4, voice: "bass" }, { step: 4, dur: 3, voice: "mid" },
+                 { step: 8, dur: 4, voice: "arp" } ]
+             ] } }
 };
 
 // バッキングコード: ペンタトニック等のアドリブ練習用ワンコードバンプ。
@@ -1812,6 +1865,7 @@ for (const def of BACKING_CHORD_DEFS) {
     BACKING_CHORDS[def.name + q.suffix] = {
       midis: [0, 7, seventh, 12 + third].map(i => rootMidi + i),          // 中域ボイシング
       high:  [seventh, 12 + third, 19, 24].map(i => rootMidi + i),       // 上位展開 (リフト用)
+      shell: [seventh, 12 + third].map(i => rootMidi + i),               // ガイドトーン (3度+7度)
       bass:  rootMidi - 12                                                // ベース音 (E1〜D#2)
     };
   }
@@ -1990,20 +2044,36 @@ function bassNote(ctx, midi, t, gain, dur) {
   env.connect(ctx.destination);
 }
 
-// コード1発の発音。パッド主体+薄いpluckアタックの2層。
-// opt.voicing: "mid"(既定) | "high"=上位展開 / opt.bass: ルートのベースを重ねる
-// opt.arp: ゆっくり順に鳴らすアルペジオ (フレーズ末のターンアラウンド用)
-function playBackingChord(ctx, t, dur, gain = 1, opt = {}) {
+// コンピング譜面のヒット1つを発音する。voiceごとに素材と音色バランスを変える:
+// コード系 (mid/high/shell/arp) はパッド主体+薄いpluckアタック、
+// ダイアド系 (d5/d6/d7=ブギーリフ) は刻みの歯切れを出すためpluck主体
+function playBackingHit(ctx, t, h, stepDur) {
   const chord = BACKING_CHORDS[rhythmSettings.backing];
   if (!chord) return;
-  if (opt.bass) bassNote(ctx, chord.bass, t, 0.26 * gain, Math.max(dur, 0.3));
-  const midis = opt.voicing === "high" ? chord.high : chord.midis;
-  const strum = opt.arp ? 0.06 : 0.012;
-  if (opt.arp) dur = Math.max(dur, 0.45);
+  const gain = h.gain ?? 1;
+  let dur = h.dur * stepDur;
+  if (h.bass || h.voice === "bass") bassNote(ctx, chord.bass, t, 0.26 * gain, Math.max(dur, 0.3));
+  if (h.voice === "bass") return;
+  const root = chord.midis[0];
+  const sets = {
+    mid:   chord.midis,
+    high:  chord.high,
+    shell: chord.shell,
+    d5:    [root, root + 7],
+    d6:    [root, root + 9],  // ブギーの6度 (コードトーン外の定番経過音)
+    d7:    [root, root + 10],
+    arp:   chord.midis.concat(root + 24)
+  };
+  const midis = sets[h.voice] || chord.midis;
+  const isDyad = h.voice === "d5" || h.voice === "d6" || h.voice === "d7";
+  const strum = h.voice === "arp" ? 0.06 : 0.012;
+  if (h.voice === "arp") dur = Math.max(dur, 0.45);
+  const pluckG = (isDyad ? 0.10 : 0.04) * gain;
+  const padG = (isDyad ? 0.03 : 0.07) * gain;
   midis.forEach((midi, i) => {
     const ts = t + strum * i;
-    pluck(ctx, midi, ts, 0.04 * gain, Math.max(dur, 0.18));
-    padNote(ctx, midi, ts, 0.07 * gain, Math.max(dur, 0.25));
+    pluck(ctx, midi, ts, pluckG, Math.max(dur, 0.18));
+    padNote(ctx, midi, ts, padG, Math.max(dur, 0.25));
   });
 }
 
@@ -2058,20 +2128,13 @@ function scheduleRhythm(ctx) {
       DRUM_SOUNDS.crash(ctx, t);
     }
     // バッキングコード (選択時のみ)。フィル小節でも通常通り鳴らす。
-    // ワンコードでも単調にならないよう4小節フレーズで変化をつける:
-    // 小節頭はベース+コード / 奇数小節の最後のヒットは上位展開でリフト /
-    // 4小節目の最後はゆっくりアルペジオでターンアラウンド
+    // 小節番号に応じてコンピング譜面のバリエーションを切り替える (4小節フレーズ)
     if (rhythmSettings.backing !== "none" && pat.backing) {
-      const phrase = rhythm.bar % 4;
-      pat.backing.forEach((h, hi) => {
-        if (h.step !== step) return;
-        const isLast = hi === pat.backing.length - 1;
-        playBackingChord(ctx, t, h.dur * stepDur, h.gain ?? 1, {
-          bass: hi === 0,
-          voicing: isLast && phrase % 2 === 1 ? "high" : "mid",
-          arp: isLast && phrase === 3
-        });
-      });
+      const bk = pat.backing;
+      const barScore = bk.bars[bk.seq[rhythm.bar % bk.seq.length]];
+      for (const h of barScore) {
+        if (h.step === step) playBackingHit(ctx, t, h, stepDur);
+      }
     }
     if (step % 4 === 0) rhythm.beatEvents.push({ time: t, beat: step / 4 });
 

@@ -2022,6 +2022,50 @@ function padNote(ctx, midi, t, gain, dur) {
   env.connect(ctx.destination);
 }
 
+// 途切れないパッドの土台 (サスティンベッド): 各小節頭で1小節分+のりしろをスケジュールし、
+// 等長リニアクロスフェード (アタック=リリース=0.4秒) で隣の小節と重ねて連続音にする。
+// これが「点の連続=打楽器的」ではなく「面」の鳴りを作る。
+// 音はR+♭7+3(10度)の3音。デチューン三角波2本+フィルタLFOのゆっくりした揺れで生気を出す
+function padBed(ctx, t, barDur) {
+  const chord = BACKING_CHORDS[rhythmSettings.backing];
+  if (!chord) return;
+  const midis = [chord.midis[0], ...chord.shell];
+  const fade = 0.4, gain = 0.05;
+  for (const midi of midis) {
+    const freq = 440 * Math.pow(2, (midi - 69) / 12);
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = Math.min(freq * 3, 2000);
+    filter.Q.value = 0.5;
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 0.3 + (midi % 5) * 0.05; // 音ごとに揺れ周期をずらす
+    const lfoDepth = ctx.createGain();
+    lfoDepth.gain.value = freq * 0.6;
+    lfo.connect(lfoDepth);
+    lfoDepth.connect(filter.frequency);
+
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(gain, t + fade);
+    env.gain.setValueAtTime(gain, t + barDur);
+    env.gain.linearRampToValueAtTime(0, t + barDur + fade);
+
+    for (const cents of [-5, 5]) {
+      const o = ctx.createOscillator();
+      o.type = "triangle";
+      o.frequency.value = freq;
+      o.detune.value = cents;
+      o.connect(filter);
+      o.start(t);
+      o.stop(t + barDur + fade + 0.1);
+    }
+    filter.connect(env);
+    env.connect(ctx.destination);
+    lfo.start(t);
+    lfo.stop(t + barDur + fade + 0.1);
+  }
+}
+
 // ルートのベース音: サイン+三角のシンプルな低音。コードより1オクターブ下
 function bassNote(ctx, midi, t, gain, dur) {
   const freq = 440 * Math.pow(2, (midi - 69) / 12);
@@ -2128,8 +2172,10 @@ function scheduleRhythm(ctx) {
       DRUM_SOUNDS.crash(ctx, t);
     }
     // バッキングコード (選択時のみ)。フィル小節でも通常通り鳴らす。
-    // 小節番号に応じてコンピング譜面のバリエーションを切り替える (4小節フレーズ)
+    // 小節頭で途切れないパッドの土台を敷き、その上にコンピング譜面のヒットを重ねる。
+    // 譜面は小節番号に応じてバリエーションを切り替える (4小節フレーズ)
     if (rhythmSettings.backing !== "none" && pat.backing) {
+      if (step === 0) padBed(ctx, t, stepsPerBar * stepDur);
       const bk = pat.backing;
       const barScore = bk.bars[bk.seq[rhythm.bar % bk.seq.length]];
       for (const h of barScore) {

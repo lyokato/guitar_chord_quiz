@@ -220,11 +220,7 @@
   .timeline-times .duration { color: var(--sub); }
   .player-controls { display: grid; gap: 10px; width: 100%; }
   .player-transport { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; }
-  .player-settings { display: grid; grid-template-columns: auto 1fr 1fr; align-items: end; gap: 10px; }
-  .player-reset {
-    min-height: 44px; padding: 9px 14px; border: 1px solid var(--line);
-    background: var(--panel2); font-size: .85rem; font-weight: 700; white-space: nowrap;
-  }
+  .player-settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: 10px; }
   .player-restart, .player-play { width: 52px; height: 52px; }
   .player-restart { color: var(--text); border: 1px solid var(--line); }
   .player-play { background: var(--tone); color: #fff; }
@@ -239,11 +235,11 @@
     color: var(--text); font-size: .88rem; font-weight: 700;
   }
   .player-count-in input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--tone); flex: 0 0 auto; }
-  .player-count-in input[type="number"] {
+  #player-count-in-bpm {
     width: 72px; min-height: 38px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px;
     background: var(--panel2); color: var(--text); font: 700 .9rem Menlo, Consolas, monospace; text-align: right;
   }
-  .player-count-in input[type="number"]:disabled { opacity: .45; cursor: not-allowed; }
+  #player-count-in-bpm:disabled { opacity: .45; cursor: not-allowed; }
   .player-count-in-unit { color: var(--sub); font: 700 .78rem Menlo, Consolas, monospace; }
   .player-status { color: var(--sub); font-size: .84rem; line-height: 1.5; }
   .player-status:empty { display: none; }
@@ -451,7 +447,6 @@
     .player-controls { gap: 8px; }
     .player-transport { gap: 7px; }
     .player-settings { gap: 7px; }
-    .player-reset { padding-inline: 11px; }
     .player-restart, .player-play { width: 48px; height: 48px; }
     .player-setting select { padding-inline: 8px 24px; }
   }
@@ -460,7 +455,6 @@
     #screen-player .nav-title { font-size: 1.05rem; }
     .player-transport { gap: 4px; }
     .player-settings { gap: 5px; }
-    .player-reset { padding-inline: 6px; font-size: 13px; }
     .player-restart, .player-play { width: 44px; height: 44px; }
     .player-setting select { padding-inline: 4px 18px; font-size: 13px; }
   }
@@ -534,8 +528,8 @@
             <h2 id="player-current-heading" class="player-name"></h2>
           </div>
 
-          <video id="player-video" class="player-media" playsinline preload="metadata"></video>
-          <audio id="player-audio" preload="metadata"></audio>
+          <video id="player-video" class="player-media" playsinline preload="auto"></video>
+          <audio id="player-audio" preload="auto"></audio>
 
           <div class="timeline">
             <div class="timeline-rail">
@@ -568,7 +562,6 @@
               </button>
             </div>
             <div class="player-settings">
-              <button class="player-reset" type="button" onclick="resetPracticeLoop()">リセット</button>
               <label class="player-setting" for="player-speed"><span>速度</span>
                 <select id="player-speed" aria-label="再生速度">
                   <option value="0.5">0.50×</option><option value="0.6">0.60×</option>
@@ -590,7 +583,9 @@
             <div class="player-count-in" role="group" aria-label="カウントイン設定">
               <label for="player-count-in">カウントイン</label>
               <input id="player-count-in" type="checkbox">
-              <input id="player-count-in-bpm" type="number" min="40" max="240" step="1" value="100" disabled aria-label="カウントインのBPM">
+              <input id="player-count-in-bpm" type="text" inputmode="numeric" pattern="[0-9]*"
+                     maxlength="3" enterkeyhint="done" autocomplete="off" value="100" disabled
+                     aria-label="カウントインのBPM">
               <span class="player-count-in-unit">BPM</span>
             </div>
           </div>
@@ -2543,8 +2538,9 @@ function cancelPracticeCountIn(release = true) {
   const wasCounting = practicePlayer.countingIn;
   practicePlayer.countingIn = false;
   if (wasCounting) {
+    if (practicePlayer.media && !practicePlayer.media.paused) practicePlayer.media.pause();
     updatePracticePlayButton();
-    if (document.getElementById("player-status").textContent === "カウントイン中…") {
+    if (["音源を準備中…", "カウントイン中…"].includes(document.getElementById("player-status").textContent)) {
       setPracticeStatus("");
     }
   }
@@ -2566,10 +2562,29 @@ async function playPracticeMedia(media, track) {
   return pitchApplied;
 }
 
+async function primePracticeMedia(media, track) {
+  const wasMuted = media.muted;
+  media.muted = true;
+  media.currentTime = track.loopStart;
+  try {
+    // play()のPromiseが解決するまで待ち、デコードと出力経路の初期化を
+    // カウントイン開始前に完了させる。即時pauseでは初期化されない端末がある。
+    await media.play();
+  } finally {
+    media.pause();
+    media.currentTime = track.loopStart;
+    media.muted = wasMuted;
+  }
+}
+
 async function startPracticeCountIn(media, track) {
   cancelPracticeCountIn(false);
   const token = ++practicePlayer.startToken;
+  practicePlayer.countingIn = true;
+  updatePracticePlayButton();
+  setPracticeStatus("音源を準備中…");
   const ctx = await getAudioCtx();
+  if (token !== practicePlayer.startToken || media !== practicePlayer.media) return;
   let pitchApplied = true;
   try {
     await applyPracticePitch();
@@ -2581,11 +2596,8 @@ async function startPracticeCountIn(media, track) {
     saveCurrentPracticeTrack();
   }
 
-  // 遅延再生が制限されるモバイル向けに、押下中にmedia要素を一度アンロックする。
-  const unlock = media.play();
-  media.pause();
-  if (unlock && unlock.catch) unlock.catch(() => {});
-  media.currentTime = track.loopStart;
+  await primePracticeMedia(media, track);
+  if (token !== practicePlayer.startToken || media !== practicePlayer.media) return;
 
   const bpm = Math.min(240, Math.max(40, Number(track.countInBpm) || 100));
   const beatDuration = 60 / bpm;
@@ -2594,8 +2606,6 @@ async function startPracticeCountIn(media, track) {
   countInGain.gain.value = 1;
   countInGain.connect(ctx.destination);
   practicePlayer.countInGain = countInGain;
-  practicePlayer.countingIn = true;
-  updatePracticePlayButton();
   if (pitchApplied) setPracticeStatus("カウントイン中…");
 
   // 2小節: 1小節目は1・3拍、2小節目は1・2・3・4拍。
@@ -2868,6 +2878,7 @@ async function togglePracticePlayer() {
       if (pitchApplied) setPracticeStatus("");
     }
   } catch (error) {
+    cancelPracticeCountIn(false);
     setPracticeStatus("再生を開始できませんでした。もう一度再生ボタンを押してください。", true);
   }
 }
@@ -2965,17 +2976,6 @@ function initPracticeLoopMarker(marker, point) {
     setPracticeLoopBoundary(point, next);
     commitPracticeLoopBoundary();
   });
-}
-
-function resetPracticeLoop() {
-  const media = practicePlayer.media;
-  const track = practicePlayer.track;
-  if (!media || !track) return;
-  track.loopStart = 0;
-  track.loopEnd = track.duration;
-  updatePracticeTimeline();
-  setPracticeStatus("");
-  saveCurrentPracticeTrack();
 }
 
 function practiceHistoryMeta(track) {
@@ -3128,6 +3128,8 @@ function initPracticePlayer() {
     saveCurrentPracticeTrack();
   });
   countInBpm.addEventListener("input", () => {
+    const digits = countInBpm.value.replace(/\D/g, "").slice(0, 3);
+    if (countInBpm.value !== digits) countInBpm.value = digits;
     const bpm = Number(countInBpm.value);
     if (!practicePlayer.track || !Number.isFinite(bpm) || bpm < 40 || bpm > 240) return;
     practicePlayer.track.countInBpm = Math.round(bpm);

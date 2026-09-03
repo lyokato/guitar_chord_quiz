@@ -27,9 +27,14 @@
     --line: #3a424e;
     --warn: #ffb74d;
     --danger: #ef5350;
+    --loop: #ff9f43;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   [hidden] { display: none !important; }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
   body {
     background: var(--bg);
     color: var(--text);
@@ -164,24 +169,32 @@
     background: var(--panel2); object-fit: contain;
   }
   .player-media.active { display: block; }
-  .timeline { display: grid; gap: 7px; }
-  .timeline-rail { position: relative; height: 38px; display: flex; align-items: center; }
+  .timeline { display: grid; gap: 5px; }
+  .timeline-rail { position: relative; height: 46px; display: flex; align-items: center; }
   .timeline-track {
     position: absolute; left: 0; right: 0; height: 8px; border-radius: 999px;
     background: var(--panel2); border: 1px solid var(--line); overflow: hidden;
   }
   .timeline-loop {
     position: absolute; top: 0; bottom: 0; left: 0; width: 100%;
-    background: var(--accent); opacity: .55;
+    background: var(--loop); opacity: .9;
   }
   .timeline-marker {
-    position: absolute; top: 4px; width: 2px; height: 30px;
-    background: var(--accent); transform: translateX(-1px); pointer-events: none;
+    position: absolute; z-index: 3; top: 1px; width: 44px; height: 44px; padding: 0;
+    border-radius: 9px; background: transparent; color: #0b0e12;
+    transform: translateX(-50%); cursor: ew-resize; touch-action: none;
   }
-  .timeline-marker::before {
-    content: attr(data-label); position: absolute; top: -2px; left: 50%; transform: translateX(-50%);
-    min-width: 18px; height: 18px; border-radius: 5px; background: var(--accent); color: #0b0e12;
-    font: 700 11px/18px Menlo, Consolas, monospace; text-align: center;
+  .timeline-marker:hover { filter: none; }
+  .timeline-marker:active { transform: translateX(-50%); }
+  .timeline-marker:focus-visible { outline: 3px solid var(--text); outline-offset: 1px; }
+  .timeline-marker::after {
+    content: ""; position: absolute; left: 50%; top: 19px; bottom: 2px;
+    width: 3px; border-radius: 2px; background: var(--loop); transform: translateX(-50%);
+  }
+  .timeline-marker-label {
+    position: absolute; z-index: 1; top: 0; left: 50%; transform: translateX(-50%);
+    width: 24px; height: 22px; border-radius: 6px; background: var(--loop); color: #0b0e12;
+    font: 800 12px/22px Menlo, Consolas, monospace; text-align: center;
   }
   #player-seek {
     position: relative; z-index: 2; width: 100%; height: 38px; margin: 0;
@@ -200,27 +213,27 @@
   .timeline-times { display: flex; justify-content: space-between; font: 600 .82rem Menlo, Consolas, monospace; }
   .timeline-times .current { color: var(--text); }
   .timeline-times .duration { color: var(--sub); }
-  .player-transport { display: flex; align-items: center; justify-content: center; gap: 14px; }
-  .player-play { width: 76px; height: 76px; background: var(--tone); color: #fff; }
-  .player-skip { width: 52px; height: 52px; color: var(--text); border: 1px solid var(--line); }
-  .loop-controls { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: stretch; }
-  .loop-point {
-    display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px;
-    min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
-    background: var(--panel2); text-align: left;
+  .player-controls {
+    position: relative; display: flex; align-items: center; justify-content: space-between;
+    min-height: 68px; width: 100%;
   }
-  .loop-point .point-label {
-    display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 7px;
-    background: var(--accent); color: #0b0e12; font: 800 .9rem Menlo, Consolas, monospace;
+  .player-controls-center {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    display: flex; align-items: center; gap: 10px;
   }
-  .loop-point .point-copy { min-width: 0; }
-  .loop-point .point-action { display: block; color: var(--sub); font-size: .74rem; }
-  .loop-point .point-time { display: block; font: 700 .92rem Menlo, Consolas, monospace; margin-top: 2px; }
-  .loop-reset { width: 52px; min-height: 52px; padding: 0; border: 1px solid var(--line); border-radius: 50%; }
-  .speed-control { display: grid; grid-template-columns: auto minmax(120px, 1fr) 4.6em; gap: 12px; align-items: center; }
-  .speed-control label { font-weight: 700; }
-  .speed-value { font: 800 1.05rem Menlo, Consolas, monospace; color: var(--accent); text-align: right; }
-  .player-status { min-height: 1.4em; color: var(--sub); font-size: .84rem; line-height: 1.5; }
+  .player-reset {
+    min-height: 44px; padding: 9px 14px; border: 1px solid var(--line);
+    background: var(--panel2); font-size: .85rem; font-weight: 700; white-space: nowrap;
+  }
+  .player-restart { width: 52px; height: 52px; color: var(--text); border: 1px solid var(--line); }
+  .player-play { width: 68px; height: 68px; background: var(--tone); color: #fff; }
+  .player-speed-select {
+    width: 100%; min-height: 44px; padding: 8px 28px 8px 10px;
+    border: 1px solid var(--line); border-radius: 9px;
+    background: var(--panel2); color: var(--text); font: 700 .92rem Menlo, Consolas, monospace;
+  }
+  .player-status { color: var(--sub); font-size: .84rem; line-height: 1.5; }
+  .player-status:empty { display: none; }
   .player-status.error { color: var(--danger); font-weight: 700; }
   .recent-shell { display: grid; gap: 10px; }
   .recent-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -409,11 +422,22 @@
     .roots-grid { grid-template-columns: repeat(4, 1fr); }
     .group-head { flex-wrap: wrap; }
     button.big { width: 100%; max-width: 320px; }
-    .loop-controls { grid-template-columns: 1fr 1fr; }
-    .loop-reset { grid-column: 1 / -1; justify-self: center; }
-    .speed-control { grid-template-columns: auto 1fr; }
-    .speed-control input { grid-column: 1 / -1; grid-row: 2; }
-    .speed-value { grid-column: 2; grid-row: 1; }
+    .player-controls { min-height: 62px; }
+    .player-controls-center { gap: 7px; }
+    .player-reset { padding-inline: 11px; }
+    .player-restart { width: 48px; height: 48px; }
+    .player-play { width: 62px; height: 62px; }
+    .player-speed-select { padding-inline: 8px 24px; }
+  }
+
+  @media (max-width: 360px) {
+    #screen-player .nav-title { font-size: 1.05rem; }
+    .player-controls { min-height: 52px; }
+    .player-controls-center { gap: 4px; }
+    .player-reset { padding-inline: 6px; font-size: 13px; }
+    .player-restart { width: 44px; height: 44px; }
+    .player-play { width: 48px; height: 48px; }
+    .player-speed-select { width: 78px; padding-inline: 4px 14px; font-size: 13px; }
   }
 
   /* ---- スマホ横持ち (高さが低い画面) ---- */
@@ -494,8 +518,14 @@
               <div class="timeline-track" aria-hidden="true">
                 <div id="player-loop-highlight" class="timeline-loop"></div>
               </div>
-              <div id="player-marker-a" class="timeline-marker" data-label="A" aria-hidden="true"></div>
-              <div id="player-marker-b" class="timeline-marker" data-label="B" aria-hidden="true"></div>
+              <div id="player-marker-a" class="timeline-marker" role="slider" tabindex="0"
+                   aria-label="ループ開始点A" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+                <span class="timeline-marker-label" aria-hidden="true">A</span>
+              </div>
+              <div id="player-marker-b" class="timeline-marker" role="slider" tabindex="0"
+                   aria-label="ループ終了点B" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+                <span class="timeline-marker-label" aria-hidden="true">B</span>
+              </div>
               <input id="player-seek" type="range" min="0" max="1" step="0.01" value="0"
                      aria-label="再生位置">
             </div>
@@ -505,37 +535,30 @@
             </div>
           </div>
 
-          <div class="player-transport">
-            <button class="icon-btn player-skip" type="button" onclick="seekPracticePlayer(-10)" aria-label="10秒戻る" title="10秒戻る">
-              <svg viewBox="0 0 24 24" width="25" height="25"><path d="M8 7H4V3M4.5 7.5A8 8 0 1 1 4 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><text x="8.2" y="15.7" fill="currentColor" font-size="8" font-weight="700">10</text></svg>
-            </button>
-            <button id="player-toggle" class="icon-btn player-play" type="button" onclick="togglePracticePlayer()" aria-label="再生" title="再生">
-              <svg id="player-icon-play" viewBox="0 0 24 24" width="29" height="29"><path d="M8 5v14l12-7z" fill="currentColor"/></svg>
-              <svg id="player-icon-pause" viewBox="0 0 24 24" width="29" height="29" hidden><rect x="6" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/></svg>
-            </button>
-            <button class="icon-btn player-skip" type="button" onclick="seekPracticePlayer(10)" aria-label="10秒進む" title="10秒進む">
-              <svg viewBox="0 0 24 24" width="25" height="25"><path d="M16 7h4V3m-.5 4.5A8 8 0 1 0 20 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><text x="7.7" y="15.7" fill="currentColor" font-size="8" font-weight="700">10</text></svg>
-            </button>
-          </div>
-
-          <div class="loop-controls" aria-label="ループ範囲">
-            <button class="loop-point" type="button" onclick="setPracticeLoopPoint('start')">
-              <span class="point-label">A</span>
-              <span class="point-copy"><span class="point-action">開始点に設定</span><span id="player-loop-a" class="point-time">0:00.0</span></span>
-            </button>
-            <button class="loop-point" type="button" onclick="setPracticeLoopPoint('end')">
-              <span class="point-label">B</span>
-              <span class="point-copy"><span class="point-action">終了点に設定</span><span id="player-loop-b" class="point-time">0:00.0</span></span>
-            </button>
-            <button class="loop-reset" type="button" onclick="resetPracticeLoop()" aria-label="ループ範囲を曲全体に戻す" title="ループ範囲を曲全体に戻す">
-              <svg viewBox="0 0 24 24" width="23" height="23"><path d="M5 8V4m0 0h4M5.6 4.7A8 8 0 1 1 4 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-          </div>
-
-          <div class="speed-control">
-            <label for="player-speed">再生速度</label>
-            <input id="player-speed" type="range" min="0.5" max="1.5" step="0.05" value="1">
-            <output id="player-speed-value" class="speed-value" for="player-speed">1.00×</output>
+          <div class="player-controls" aria-label="再生コントロール">
+            <button class="player-reset" type="button" onclick="resetPracticeLoop()">リセット</button>
+            <div class="player-controls-center">
+              <button class="icon-btn player-restart" type="button" onclick="restartPracticeLoop()" aria-label="ループ先頭に戻る" title="ループ先頭に戻る">
+                <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="5" y="5" width="2.5" height="14" rx="1" fill="currentColor"/><path d="M18 6.5 9 12l9 5.5z" fill="currentColor"/></svg>
+              </button>
+              <button id="player-toggle" class="icon-btn player-play" type="button" onclick="togglePracticePlayer()" aria-label="再生" title="再生">
+                <svg id="player-icon-play" viewBox="0 0 24 24" width="29" height="29"><path d="M8 5v14l12-7z" fill="currentColor"/></svg>
+                <svg id="player-icon-pause" viewBox="0 0 24 24" width="29" height="29" hidden><rect x="6" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/></svg>
+              </button>
+            </div>
+            <label class="visually-hidden" for="player-speed">再生速度</label>
+            <select id="player-speed" class="player-speed-select" aria-label="再生速度">
+              <option value="0.5">0.50×</option>
+              <option value="0.6">0.60×</option>
+              <option value="0.7">0.70×</option>
+              <option value="0.75">0.75×</option>
+              <option value="0.8">0.80×</option>
+              <option value="0.9">0.90×</option>
+              <option value="1" selected>1.00×</option>
+              <option value="1.1">1.10×</option>
+              <option value="1.25">1.25×</option>
+              <option value="1.5">1.50×</option>
+            </select>
           </div>
 
         </div>
@@ -2274,7 +2297,8 @@ const PLAYER_DB_NAME = "guitarPracticePlayer";
 const PLAYER_DB_VERSION = 1;
 const PLAYER_MAX_FILE_SIZE = 20 * 1024 * 1024;
 const PLAYER_HISTORY_LIMIT = 5;
-const PLAYER_MIN_LOOP = 0.25;
+const PLAYER_MIN_LOOP = 3;
+const PLAYER_SPEEDS = [0.5, 0.6, 0.7, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5];
 
 const practicePlayer = {
   dbPromise: null,
@@ -2459,7 +2483,10 @@ async function loadPracticeSource(blob, track) {
   track.loopEnd = hasSavedEnd
     ? Math.min(Math.max(track.loopStart + PLAYER_MIN_LOOP, savedEnd), duration)
     : duration;
-  track.playbackRate = Math.min(1.5, Math.max(0.5, Number(track.playbackRate) || 1));
+  const requestedRate = Math.min(1.5, Math.max(0.5, Number(track.playbackRate) || 1));
+  track.playbackRate = PLAYER_SPEEDS.reduce((nearest, rate) =>
+    Math.abs(rate - requestedRate) < Math.abs(nearest - requestedRate) ? rate : nearest
+  );
   track.lastPracticedAt = Date.now();
   practicePlayer.track = track;
   media.playbackRate = track.playbackRate;
@@ -2469,9 +2496,8 @@ async function loadPracticeSource(blob, track) {
   document.getElementById("player-current-meta").textContent = `${formatPlayerSize(track.size)} · 端末内だけで使用`;
   document.getElementById("player-seek").max = String(duration);
   document.getElementById("player-speed").value = String(track.playbackRate);
-  document.getElementById("player-speed-value").value = `${track.playbackRate.toFixed(2)}×`;
   showPracticePlayerReady(true);
-  setPracticeStatus("A–B間を繰り返します。シークバーで好きな位置へ移動できます。");
+  setPracticeStatus("");
   updatePracticeTimeline();
   updatePracticePlayButton();
 
@@ -2570,18 +2596,26 @@ function updatePracticeTimeline() {
   if (!practicePlayer.scrubbing) seek.value = String(current);
   document.getElementById("player-current-time").textContent = formatPlayerTime(Number(seek.value));
   document.getElementById("player-duration").textContent = formatPlayerTime(duration);
-  document.getElementById("player-loop-a").textContent = formatPlayerTime(track.loopStart);
-  document.getElementById("player-loop-b").textContent = formatPlayerTime(track.loopEnd);
   document.getElementById("player-loop-highlight").style.left = `${startPercent}%`;
   document.getElementById("player-loop-highlight").style.width = `${Math.max(0, endPercent - startPercent)}%`;
   document.getElementById("player-marker-a").style.left = `clamp(9px, ${startPercent}%, calc(100% - 9px))`;
   document.getElementById("player-marker-b").style.left = `clamp(9px, ${endPercent}%, calc(100% - 9px))`;
+  const markerA = document.getElementById("player-marker-a");
+  const markerB = document.getElementById("player-marker-b");
+  const minimum = Math.min(PLAYER_MIN_LOOP, duration);
+  markerA.setAttribute("aria-valuemax", String(Math.max(0, track.loopEnd - minimum)));
+  markerA.setAttribute("aria-valuenow", track.loopStart.toFixed(2));
+  markerA.setAttribute("aria-valuetext", formatPlayerTime(track.loopStart));
+  markerB.setAttribute("aria-valuemin", String(Math.min(duration, track.loopStart + minimum)));
+  markerB.setAttribute("aria-valuemax", String(duration));
+  markerB.setAttribute("aria-valuenow", track.loopEnd.toFixed(2));
+  markerB.setAttribute("aria-valuetext", formatPlayerTime(track.loopEnd));
 }
 
 function updatePracticePlayButton() {
   const playing = practicePlayer.media && !practicePlayer.media.paused;
-  document.getElementById("player-icon-play").hidden = playing;
-  document.getElementById("player-icon-pause").hidden = !playing;
+  document.getElementById("player-icon-play").toggleAttribute("hidden", Boolean(playing));
+  document.getElementById("player-icon-pause").toggleAttribute("hidden", !playing);
   const button = document.getElementById("player-toggle");
   button.setAttribute("aria-label", playing ? "一時停止" : "再生");
   button.title = playing ? "一時停止" : "再生";
@@ -2622,16 +2656,16 @@ async function togglePracticePlayer() {
   }
   try {
     await media.play();
-    setPracticeStatus("A–B間を繰り返しています。");
+    setPracticeStatus("");
   } catch (error) {
     setPracticeStatus("再生を開始できませんでした。もう一度再生ボタンを押してください。", true);
   }
 }
 
-function seekPracticePlayer(delta) {
+function restartPracticeLoop() {
   const media = practicePlayer.media;
   if (!media || !practicePlayer.track) return;
-  media.currentTime = Math.min(practicePlayer.track.duration, Math.max(0, media.currentTime + delta));
+  media.currentTime = practicePlayer.track.loopStart;
   updatePracticeTimeline();
 }
 
@@ -2642,29 +2676,85 @@ function saveCurrentPracticeTrack() {
     .catch(() => setPracticeStatus("ループ設定を履歴に保存できませんでした。", true));
 }
 
-function setPracticeLoopPoint(point) {
+function setPracticeLoopBoundary(point, value) {
+  const track = practicePlayer.track;
+  if (!track) return;
+  const minimum = Math.min(PLAYER_MIN_LOOP, track.duration);
+  if (point === "start") {
+    track.loopStart = Math.min(Math.max(0, value), Math.max(0, track.loopEnd - minimum));
+  } else {
+    track.loopEnd = Math.max(Math.min(track.duration, value), Math.min(track.duration, track.loopStart + minimum));
+  }
+  updatePracticeTimeline();
+}
+
+function commitPracticeLoopBoundary() {
   const media = practicePlayer.media;
   const track = practicePlayer.track;
   if (!media || !track) return;
-  const current = Math.min(track.duration, Math.max(0, media.currentTime));
-  if (point === "start") {
-    if (current > track.loopEnd - PLAYER_MIN_LOOP) {
-      setPracticeStatus("AはBより0.25秒以上前に設定してください。", true);
-      return;
-    }
-    track.loopStart = current;
-    setPracticeStatus(`開始点Aを${formatPlayerTime(current)}に設定しました。`);
-  } else {
-    if (current < track.loopStart + PLAYER_MIN_LOOP) {
-      setPracticeStatus("BはAより0.25秒以上後に設定してください。", true);
-      return;
-    }
-    track.loopEnd = current;
+  if (media.currentTime < track.loopStart || media.currentTime >= track.loopEnd) {
     media.currentTime = track.loopStart;
-    setPracticeStatus(`終了点Bを${formatPlayerTime(current)}に設定し、Aへ戻りました。`);
   }
   updatePracticeTimeline();
+  setPracticeStatus("");
   saveCurrentPracticeTrack();
+}
+
+function practiceBoundaryFromDrag(point, startValue, startX, clientX) {
+  const track = practicePlayer.track;
+  if (!track) return;
+  const rail = document.querySelector(".timeline-rail");
+  const rect = rail.getBoundingClientRect();
+  const inset = 9;
+  const delta = (clientX - startX) / Math.max(1, rect.width - inset * 2) * track.duration;
+  setPracticeLoopBoundary(point, startValue + delta);
+}
+
+function initPracticeLoopMarker(marker, point) {
+  let pointerId = null;
+  let startX = 0;
+  let startValue = 0;
+  let moved = false;
+  marker.addEventListener("pointerdown", event => {
+    if (!practicePlayer.track) return;
+    pointerId = event.pointerId;
+    startX = event.clientX;
+    startValue = point === "start" ? practicePlayer.track.loopStart : practicePlayer.track.loopEnd;
+    moved = false;
+    marker.setPointerCapture(pointerId);
+    event.preventDefault();
+  });
+  marker.addEventListener("pointermove", event => {
+    if (pointerId !== event.pointerId) return;
+    if (Math.abs(event.clientX - startX) < 2) return;
+    moved = true;
+    practiceBoundaryFromDrag(point, startValue, startX, event.clientX);
+  });
+  const finish = event => {
+    if (pointerId !== event.pointerId) return;
+    if (moved) practiceBoundaryFromDrag(point, startValue, startX, event.clientX);
+    pointerId = null;
+    if (moved) commitPracticeLoopBoundary();
+  };
+  marker.addEventListener("pointerup", finish);
+  marker.addEventListener("pointercancel", event => {
+    if (pointerId !== event.pointerId) return;
+    pointerId = null;
+    if (moved) setPracticeLoopBoundary(point, startValue);
+  });
+  marker.addEventListener("keydown", event => {
+    const track = practicePlayer.track;
+    if (!track || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const current = point === "start" ? track.loopStart : track.loopEnd;
+    let next = current;
+    if (event.key === "ArrowLeft") next -= event.shiftKey ? 1 : 0.1;
+    if (event.key === "ArrowRight") next += event.shiftKey ? 1 : 0.1;
+    if (event.key === "Home") next = 0;
+    if (event.key === "End") next = track.duration;
+    setPracticeLoopBoundary(point, next);
+    commitPracticeLoopBoundary();
+  });
 }
 
 function resetPracticeLoop() {
@@ -2674,7 +2764,7 @@ function resetPracticeLoop() {
   track.loopStart = 0;
   track.loopEnd = track.duration;
   updatePracticeTimeline();
-  setPracticeStatus("ループ範囲を曲全体に戻しました。");
+  setPracticeStatus("");
   saveCurrentPracticeTrack();
 }
 
@@ -2769,13 +2859,15 @@ function initPracticePlayer() {
   });
 
   const speed = document.getElementById("player-speed");
-  speed.addEventListener("input", () => {
+  speed.addEventListener("change", () => {
     const rate = Number(speed.value);
-    document.getElementById("player-speed-value").value = `${rate.toFixed(2)}×`;
     if (practicePlayer.media) practicePlayer.media.playbackRate = rate;
     if (practicePlayer.track) practicePlayer.track.playbackRate = rate;
+    saveCurrentPracticeTrack();
   });
-  speed.addEventListener("change", saveCurrentPracticeTrack);
+
+  initPracticeLoopMarker(document.getElementById("player-marker-a"), "start");
+  initPracticeLoopMarker(document.getElementById("player-marker-b"), "end");
 
   for (const media of [document.getElementById("player-audio"), document.getElementById("player-video")]) {
     media.addEventListener("play", () => {

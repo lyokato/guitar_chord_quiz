@@ -228,7 +228,7 @@
   .player-restart { width: 52px; height: 52px; color: var(--text); border: 1px solid var(--line); }
   .player-play { width: 68px; height: 68px; background: var(--tone); color: #fff; }
   .player-speed-select {
-    width: 100%; min-height: 44px; padding: 8px 28px 8px 10px;
+    flex: 0 0 auto; width: 108px; min-height: 44px; padding: 8px 28px 8px 10px;
     border: 1px solid var(--line); border-radius: 9px;
     background: var(--panel2); color: var(--text); font: 700 .92rem Menlo, Consolas, monospace;
   }
@@ -2822,12 +2822,13 @@ async function renderPracticeHistory() {
     remove.addEventListener("click", async () => {
       if (!confirm(`「${track.name}」を履歴から削除しますか？\n端末内の元ファイルは削除されません。`)) return;
       try {
+        const deletingCurrent = practicePlayer.track && practicePlayer.track.id === track.id;
         await deletePracticeTrack(track.id);
-        if (practicePlayer.track && practicePlayer.track.id === track.id) practicePlayer.track.stored = false;
+        if (deletingCurrent) clearPracticeSource();
         await renderPracticeHistory();
-        if (practicePlayer.track && practicePlayer.track.id === track.id) {
-          setPracticeStatus("履歴から削除しました。現在の再生はそのまま続けられます。");
-        }
+        setPracticeStatus(deletingCurrent
+          ? "履歴から削除し、プレイヤーを閉じました。"
+          : "履歴から削除しました。");
       } catch (error) {
         setPracticeStatus("履歴から削除できませんでした。", true);
       }

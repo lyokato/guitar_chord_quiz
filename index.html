@@ -161,9 +161,8 @@
   .player-file-label:hover { filter: brightness(1.15); }
   .player-file-label:active { transform: scale(.98); }
   .player-file-input:focus-visible + .player-file-label { outline: 3px solid var(--accent); outline-offset: 3px; }
-  .player-current { min-width: 0; }
+  .player-current { min-width: 0; margin-bottom: 20px; }
   .player-name { font-size: 1.15rem; font-weight: 700; overflow-wrap: anywhere; }
-  .player-meta { color: var(--sub); font-size: .82rem; margin-top: 4px; }
   .player-media {
     display: none; width: 100%; max-height: 320px; border-radius: 10px;
     background: var(--panel2); object-fit: contain;
@@ -254,6 +253,19 @@
   .recent-meta { display: block; color: var(--sub); font-size: .75rem; margin-top: 4px; }
   .recent-delete { width: 44px; height: 44px; padding: 0; border-radius: 50%; color: var(--sub); align-self: center; }
   .recent-delete:hover { color: var(--danger); }
+  .confirm-dialog {
+    width: min(calc(100% - 32px), 420px); margin: auto; padding: 0;
+    border: 1px solid var(--line); border-radius: 14px;
+    background: var(--panel); color: var(--text); box-shadow: 0 18px 60px rgba(0, 0, 0, .55);
+    overscroll-behavior: contain;
+  }
+  .confirm-dialog::backdrop { background: rgba(4, 7, 11, .72); }
+  .confirm-dialog-body { display: grid; gap: 16px; padding: 22px; }
+  .confirm-dialog h2 { margin: 0; color: var(--text); }
+  .confirm-dialog p { color: var(--sub); line-height: 1.6; overflow-wrap: anywhere; }
+  .confirm-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; }
+  .confirm-delete { background: var(--danger); color: #fff; font-weight: 700; }
+  body:has(.confirm-dialog[open]) { overflow: hidden; }
 
   /* ---- settings ---- */
   /* スティッキー時もボタン位置(上から24px)が変わらないよう、.appの上パディング分を内包する */
@@ -509,7 +521,6 @@
         <div id="player-ready" hidden>
           <div class="player-current">
             <h2 id="player-current-heading" class="player-name"></h2>
-            <p id="player-current-meta" class="player-meta"></p>
           </div>
 
           <video id="player-video" class="player-media" playsinline preload="metadata"></video>
@@ -575,6 +586,17 @@
         <div id="player-recent-list" class="recent-list"></div>
       </section>
     </div>
+
+    <dialog id="practice-delete-dialog" class="confirm-dialog" aria-labelledby="practice-delete-title" aria-describedby="practice-delete-message">
+      <form class="confirm-dialog-body" method="dialog">
+        <h2 id="practice-delete-title">最近の曲から外す</h2>
+        <p id="practice-delete-message"></p>
+        <div class="confirm-dialog-actions">
+          <button value="cancel" autofocus>キャンセル</button>
+          <button class="confirm-delete" type="button" onclick="confirmPracticeTrackDeletion()">外す</button>
+        </div>
+      </form>
+    </dialog>
   </div>
 
   <!-- ==== コードクイズ: タイトル ==== -->
@@ -2309,6 +2331,7 @@ const practicePlayer = {
   scrubbing: false,
   loadToken: 0
 };
+let practiceDeleteTarget = null;
 
 function openPracticePlayerDb() {
   if (!practicePlayer.dbPromise) {
@@ -2493,7 +2516,6 @@ async function loadPracticeSource(blob, track) {
   media.currentTime = track.loopStart;
 
   document.getElementById("player-current-heading").textContent = track.name;
-  document.getElementById("player-current-meta").textContent = `${formatPlayerSize(track.size)} · 端末内だけで使用`;
   document.getElementById("player-seek").max = String(duration);
   document.getElementById("player-speed").value = String(track.playbackRate);
   showPracticePlayerReady(true);
@@ -2573,7 +2595,7 @@ async function openPracticeTrack(id) {
     if (!track || !blob) {
       await deletePracticeTrack(id).catch(() => {});
       await renderPracticeHistory();
-      setPracticeStatus("保存済みファイルが見つからないため、履歴から削除しました。", true);
+      setPracticeStatus("保存済みファイルが見つからないため、最近の曲から外しました。", true);
       return;
     }
     loadingStarted = true;
@@ -2772,7 +2794,7 @@ function practiceHistoryMeta(track) {
   const loop = fullLoop
     ? "全体ループ"
     : `${formatPlayerTime(track.loopStart)}–${formatPlayerTime(track.loopEnd)}`;
-  return `${formatPlayerTime(track.duration)} · ${loop} · ${Number(track.playbackRate || 1).toFixed(2)}×`;
+  return `${formatPlayerSize(track.size)} · ${formatPlayerTime(track.duration)} · ${loop} · ${Number(track.playbackRate || 1).toFixed(2)}×`;
 }
 
 async function renderPracticeHistory() {
@@ -2815,27 +2837,43 @@ async function renderPracticeHistory() {
     const remove = document.createElement("button");
     remove.className = "recent-delete";
     remove.type = "button";
-    remove.setAttribute("aria-label", `${track.name}を履歴から削除`);
-    remove.title = "履歴から削除";
+    remove.setAttribute("aria-label", `${track.name}を最近の曲から外す`);
+    remove.title = "最近の曲から外す";
     remove.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 10v7m4-7v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    remove.addEventListener("click", async () => {
-      if (!confirm(`「${track.name}」を履歴から削除しますか？\n端末内の元ファイルは削除されません。`)) return;
-      try {
-        const deletingCurrent = practicePlayer.track && practicePlayer.track.id === track.id;
-        await deletePracticeTrack(track.id);
-        if (deletingCurrent) clearPracticeSource();
-        await renderPracticeHistory();
-        setPracticeStatus(deletingCurrent
-          ? "履歴から削除し、プレイヤーを閉じました。"
-          : "履歴から削除しました。");
-      } catch (error) {
-        setPracticeStatus("履歴から削除できませんでした。", true);
-      }
-    });
+    remove.addEventListener("click", () => requestPracticeTrackDeletion(track));
     row.append(open, remove);
     list.appendChild(row);
   }
 }
+
+function requestPracticeTrackDeletion(track) {
+  practiceDeleteTarget = track;
+  document.getElementById("practice-delete-message").textContent =
+    `「${track.name}」を最近の曲リストから外します。`;
+  document.getElementById("practice-delete-dialog").showModal();
+}
+
+async function confirmPracticeTrackDeletion() {
+  const track = practiceDeleteTarget;
+  if (!track) return;
+  practiceDeleteTarget = null;
+  document.getElementById("practice-delete-dialog").close();
+  try {
+    const deletingCurrent = practicePlayer.track && practicePlayer.track.id === track.id;
+    await deletePracticeTrack(track.id);
+    if (deletingCurrent) clearPracticeSource();
+    await renderPracticeHistory();
+    setPracticeStatus(deletingCurrent
+      ? "最近の曲から外し、プレイヤーを閉じました。"
+      : "最近の曲から外しました。");
+  } catch (error) {
+    setPracticeStatus("最近の曲から外せませんでした。", true);
+  }
+}
+
+document.getElementById("practice-delete-dialog").addEventListener("close", () => {
+  practiceDeleteTarget = null;
+});
 
 function initPracticePlayer() {
   for (const id of ["player-file", "player-file-more"]) {

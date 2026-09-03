@@ -5,6 +5,7 @@ const CACHE_NAME = "guitar-practice-v8";
 const ASSETS = [
   "./",
   "./index.html",
+  "./pitch-shifter-worklet.js",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",

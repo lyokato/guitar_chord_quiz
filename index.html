@@ -218,14 +218,9 @@
   .timeline-times { display: flex; justify-content: space-between; font: 600 .82rem Menlo, Consolas, monospace; }
   .timeline-times .current { color: var(--text); }
   .timeline-times .duration { color: var(--sub); }
-  .player-controls {
-    position: relative; display: flex; align-items: center; justify-content: space-between;
-    min-height: 68px; width: 100%;
-  }
-  .player-controls-center {
-    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-    display: flex; align-items: center; gap: 10px;
-  }
+  .player-controls { display: grid; gap: 10px; width: 100%; }
+  .player-transport { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; }
+  .player-settings { display: grid; grid-template-columns: auto 1fr 1fr; align-items: end; gap: 10px; }
   .player-reset {
     min-height: 44px; padding: 9px 14px; border: 1px solid var(--line);
     background: var(--panel2); font-size: .85rem; font-weight: 700; white-space: nowrap;
@@ -233,11 +228,23 @@
   .player-restart, .player-play { width: 52px; height: 52px; }
   .player-restart { color: var(--text); border: 1px solid var(--line); }
   .player-play { background: var(--tone); color: #fff; }
-  .player-speed-select {
-    flex: 0 0 auto; width: 108px; min-height: 44px; padding: 8px 28px 8px 10px;
+  .player-setting { display: grid; gap: 4px; min-width: 0; color: var(--sub); font-size: .72rem; font-weight: 700; }
+  .player-setting select {
+    width: 100%; min-height: 44px; padding: 8px 28px 8px 10px;
     border: 1px solid var(--line); border-radius: 9px;
     background: var(--panel2); color: var(--text); font: 700 .92rem Menlo, Consolas, monospace;
   }
+  .player-count-in {
+    display: flex; align-items: center; gap: 9px; min-height: 44px;
+    color: var(--text); font-size: .88rem; font-weight: 700;
+  }
+  .player-count-in input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--tone); flex: 0 0 auto; }
+  .player-count-in input[type="number"] {
+    width: 72px; min-height: 38px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--panel2); color: var(--text); font: 700 .9rem Menlo, Consolas, monospace; text-align: right;
+  }
+  .player-count-in input[type="number"]:disabled { opacity: .45; cursor: not-allowed; }
+  .player-count-in-unit { color: var(--sub); font: 700 .78rem Menlo, Consolas, monospace; }
   .player-status { color: var(--sub); font-size: .84rem; line-height: 1.5; }
   .player-status:empty { display: none; }
   .player-status.error { color: var(--danger); font-weight: 700; }
@@ -441,20 +448,21 @@
     .roots-grid { grid-template-columns: repeat(4, 1fr); }
     .group-head { flex-wrap: wrap; }
     button.big { width: 100%; max-width: 320px; }
-    .player-controls { min-height: 62px; }
-    .player-controls-center { gap: 7px; }
+    .player-controls { gap: 8px; }
+    .player-transport { gap: 7px; }
+    .player-settings { gap: 7px; }
     .player-reset { padding-inline: 11px; }
     .player-restart, .player-play { width: 48px; height: 48px; }
-    .player-speed-select { padding-inline: 8px 24px; }
+    .player-setting select { padding-inline: 8px 24px; }
   }
 
   @media (max-width: 360px) {
     #screen-player .nav-title { font-size: 1.05rem; }
-    .player-controls { min-height: 52px; }
-    .player-controls-center { gap: 4px; }
+    .player-transport { gap: 4px; }
+    .player-settings { gap: 5px; }
     .player-reset { padding-inline: 6px; font-size: 13px; }
     .player-restart, .player-play { width: 44px; height: 44px; }
-    .player-speed-select { width: 78px; padding-inline: 4px 14px; font-size: 13px; }
+    .player-setting select { padding-inline: 4px 18px; font-size: 13px; }
   }
 
   /* ---- スマホ横持ち (高さが低い画面) ---- */
@@ -550,8 +558,7 @@
           </div>
 
           <div class="player-controls" aria-label="再生コントロール">
-            <button class="player-reset" type="button" onclick="resetPracticeLoop()">リセット</button>
-            <div class="player-controls-center">
+            <div class="player-transport">
               <button class="icon-btn player-restart" type="button" onclick="restartPracticeLoop()" aria-label="ループ先頭に戻る" title="ループ先頭に戻る">
                 <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="5" y="5" width="2.5" height="14" rx="1" fill="currentColor"/><path d="M18 6.5 9 12l9 5.5z" fill="currentColor"/></svg>
               </button>
@@ -560,19 +567,32 @@
                 <svg id="player-icon-pause" viewBox="0 0 24 24" width="26" height="26" hidden><rect x="6" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/></svg>
               </button>
             </div>
-            <label class="visually-hidden" for="player-speed">再生速度</label>
-            <select id="player-speed" class="player-speed-select" aria-label="再生速度">
-              <option value="0.5">0.50×</option>
-              <option value="0.6">0.60×</option>
-              <option value="0.7">0.70×</option>
-              <option value="0.75">0.75×</option>
-              <option value="0.8">0.80×</option>
-              <option value="0.9">0.90×</option>
-              <option value="1" selected>1.00×</option>
-              <option value="1.1">1.10×</option>
-              <option value="1.25">1.25×</option>
-              <option value="1.5">1.50×</option>
-            </select>
+            <div class="player-settings">
+              <button class="player-reset" type="button" onclick="resetPracticeLoop()">リセット</button>
+              <label class="player-setting" for="player-speed"><span>速度</span>
+                <select id="player-speed" aria-label="再生速度">
+                  <option value="0.5">0.50×</option><option value="0.6">0.60×</option>
+                  <option value="0.7">0.70×</option><option value="0.75">0.75×</option>
+                  <option value="0.8">0.80×</option><option value="0.9">0.90×</option>
+                  <option value="1" selected>1.00×</option><option value="1.1">1.10×</option>
+                  <option value="1.25">1.25×</option><option value="1.5">1.50×</option>
+                </select>
+              </label>
+              <label class="player-setting" for="player-key"><span>キー</span>
+                <select id="player-key" aria-label="キー変更">
+                  <option value="0" selected>0</option><option value="1">+1</option>
+                  <option value="-1">−1</option><option value="2">+2</option>
+                  <option value="-2">−2</option><option value="3">+3</option>
+                  <option value="-3">−3</option>
+                </select>
+              </label>
+            </div>
+            <div class="player-count-in" role="group" aria-label="カウントイン設定">
+              <label for="player-count-in">カウントイン</label>
+              <input id="player-count-in" type="checkbox">
+              <input id="player-count-in-bpm" type="number" min="40" max="240" step="1" value="100" disabled aria-label="カウントインのBPM">
+              <span class="player-count-in-unit">BPM</span>
+            </div>
           </div>
 
         </div>
@@ -1947,7 +1967,7 @@ function scheduleAudioRelease(delayMs) {
   if (audioReleaseTimer) clearTimeout(audioReleaseTimer);
   audioReleaseTimer = setTimeout(() => {
     audioReleaseTimer = null;
-    if (rhythm.playing) return;
+    if (rhythm.playing || practicePlayer.countingIn || (practicePlayer.media && !practicePlayer.media.paused)) return;
     releaseAudioSession();
   }, delayMs);
 }
@@ -2077,67 +2097,67 @@ function getNoiseBuffer(ctx) {
   return noiseBuffer;
 }
 
-function envGain(ctx, t, peak, dur) {
+function envGain(ctx, t, peak, dur, output = ctx.destination) {
   const g = ctx.createGain();
   g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(peak, t + 0.003);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  g.connect(ctx.destination);
+  g.connect(output);
   return g;
 }
 
-function playNoise(ctx, t, { peak, dur, filterType, freq }) {
+function playNoise(ctx, t, { peak, dur, filterType, freq }, output = ctx.destination) {
   const src = ctx.createBufferSource();
   src.buffer = getNoiseBuffer(ctx);
   const f = ctx.createBiquadFilter();
   f.type = filterType;
   f.frequency.value = freq;
   src.connect(f);
-  f.connect(envGain(ctx, t, peak, dur));
+  f.connect(envGain(ctx, t, peak, dur, output));
   src.start(t);
   src.stop(t + dur + 0.05);
 }
 
 const DRUM_SOUNDS = {
-  kick(ctx, t) {
+  kick(ctx, t, vel = 1, output = ctx.destination) {
     const o = ctx.createOscillator();
     o.type = "sine";
     o.frequency.setValueAtTime(150, t);
     o.frequency.exponentialRampToValueAtTime(48, t + 0.11);
-    o.connect(envGain(ctx, t, 0.9, 0.26));
+    o.connect(envGain(ctx, t, 0.9 * vel, 0.26, output));
     o.start(t); o.stop(t + 0.3);
   },
-  snare(ctx, t, vel = 1) {
-    playNoise(ctx, t, { peak: 0.45 * vel, dur: 0.18, filterType: "highpass", freq: 1100 });
+  snare(ctx, t, vel = 1, output = ctx.destination) {
+    playNoise(ctx, t, { peak: 0.45 * vel, dur: 0.18, filterType: "highpass", freq: 1100 }, output);
     const o = ctx.createOscillator();
     o.type = "triangle";
     o.frequency.setValueAtTime(190, t);
-    o.connect(envGain(ctx, t, 0.3 * vel, 0.1));
+    o.connect(envGain(ctx, t, 0.3 * vel, 0.1, output));
     o.start(t); o.stop(t + 0.15);
   },
-  tomH(ctx, t) { DRUM_SOUNDS._tom(ctx, t, 240); },
-  tomM(ctx, t) { DRUM_SOUNDS._tom(ctx, t, 180); },
-  tomL(ctx, t) { DRUM_SOUNDS._tom(ctx, t, 130); },
-  _tom(ctx, t, freq) {
+  tomH(ctx, t, vel = 1, output = ctx.destination) { DRUM_SOUNDS._tom(ctx, t, 240, vel, output); },
+  tomM(ctx, t, vel = 1, output = ctx.destination) { DRUM_SOUNDS._tom(ctx, t, 180, vel, output); },
+  tomL(ctx, t, vel = 1, output = ctx.destination) { DRUM_SOUNDS._tom(ctx, t, 130, vel, output); },
+  _tom(ctx, t, freq, vel = 1, output = ctx.destination) {
     const o = ctx.createOscillator();
     o.type = "sine";
     o.frequency.setValueAtTime(freq * 1.4, t);
     o.frequency.exponentialRampToValueAtTime(freq, t + 0.09);
-    o.connect(envGain(ctx, t, 0.55, 0.3));
+    o.connect(envGain(ctx, t, 0.55 * vel, 0.3, output));
     o.start(t); o.stop(t + 0.35);
   },
-  hh(ctx, t)  { playNoise(ctx, t, { peak: 0.22, dur: 0.05, filterType: "highpass", freq: 7500 }); },
-  oh(ctx, t, vel = 1) {
+  hh(ctx, t, vel = 1, output = ctx.destination)  { playNoise(ctx, t, { peak: 0.22 * vel, dur: 0.05, filterType: "highpass", freq: 7500 }, output); },
+  oh(ctx, t, vel = 1, output = ctx.destination) {
     // クローズドとの差がはっきり出るよう、長め・大きめ・低めの帯域+シズル成分
-    playNoise(ctx, t, { peak: 0.38 * vel, dur: 0.55, filterType: "highpass", freq: 5500 });
-    playNoise(ctx, t, { peak: 0.18 * vel, dur: 0.45, filterType: "bandpass", freq: 9000 });
+    playNoise(ctx, t, { peak: 0.38 * vel, dur: 0.55, filterType: "highpass", freq: 5500 }, output);
+    playNoise(ctx, t, { peak: 0.18 * vel, dur: 0.45, filterType: "bandpass", freq: 9000 }, output);
   },
-  crash(ctx, t) { playNoise(ctx, t, { peak: 0.3, dur: 1.1, filterType: "highpass", freq: 5000 }); },
-  click(ctx, t, accent) {
+  crash(ctx, t, vel = 1, output = ctx.destination) { playNoise(ctx, t, { peak: 0.3 * vel, dur: 1.1, filterType: "highpass", freq: 5000 }, output); },
+  click(ctx, t, accent, output = ctx.destination) {
     const o = ctx.createOscillator();
     o.type = "square";
     o.frequency.value = accent ? 1600 : 1050;
-    o.connect(envGain(ctx, t, accent ? 0.35 : 0.22, 0.035));
+    o.connect(envGain(ctx, t, accent ? 0.35 : 0.22, 0.035, output));
     o.start(t); o.stop(t + 0.06);
   }
 };
@@ -2332,7 +2352,13 @@ const practicePlayer = {
   objectUrl: null,
   animationFrame: 0,
   scrubbing: false,
-  loadToken: 0
+  loadToken: 0,
+  pitchWorkletPromise: null,
+  mediaPipelines: new Map(),
+  countingIn: false,
+  countInTimer: 0,
+  countInGain: null,
+  startToken: 0
 };
 let practiceDeleteTarget = null;
 
@@ -2461,6 +2487,142 @@ function clearPracticeSource() {
   updatePracticePlayButton();
 }
 
+async function ensurePracticePitchPipeline(media) {
+  let pipeline = practicePlayer.mediaPipelines.get(media);
+  if (pipeline) return pipeline;
+  const ctx = await getAudioCtx();
+  if (!ctx.audioWorklet || typeof AudioWorkletNode === "undefined") {
+    throw new Error("このブラウザではキー変更を利用できません。");
+  }
+  if (!practicePlayer.pitchWorkletPromise) {
+    practicePlayer.pitchWorkletPromise = ctx.audioWorklet.addModule("./pitch-shifter-worklet.js")
+      .catch(error => {
+        practicePlayer.pitchWorkletPromise = null;
+        throw error;
+      });
+  }
+  await practicePlayer.pitchWorkletPromise;
+  const source = ctx.createMediaElementSource(media);
+  try {
+    const shifter = new AudioWorkletNode(ctx, "practice-pitch-shifter");
+    source.connect(shifter).connect(ctx.destination);
+    pipeline = { source, shifter };
+  } catch (error) {
+    source.connect(ctx.destination);
+    pipeline = { source, shifter: null };
+    practicePlayer.mediaPipelines.set(media, pipeline);
+    throw error;
+  }
+  practicePlayer.mediaPipelines.set(media, pipeline);
+  return pipeline;
+}
+
+async function applyPracticePitch() {
+  const media = practicePlayer.media;
+  const track = practicePlayer.track;
+  if (!media || !track) return;
+  const semitones = Number(track.pitchSemitones) || 0;
+  const existing = practicePlayer.mediaPipelines.get(media);
+  if (!existing && semitones === 0) return;
+  const pipeline = existing || await ensurePracticePitchPipeline(media);
+  if (!pipeline.shifter) throw new Error("このブラウザではキー変更を利用できません。");
+  pipeline.shifter.parameters.get("semitones").setValueAtTime(semitones, audioCtx.currentTime);
+}
+
+function cancelPracticeCountIn(release = true) {
+  practicePlayer.startToken++;
+  if (practicePlayer.countInTimer) clearTimeout(practicePlayer.countInTimer);
+  practicePlayer.countInTimer = 0;
+  if (practicePlayer.countInGain && audioCtx) {
+    const gain = practicePlayer.countInGain;
+    gain.gain.cancelScheduledValues(audioCtx.currentTime);
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    setTimeout(() => { try { gain.disconnect(); } catch (error) {} }, 80);
+  }
+  practicePlayer.countInGain = null;
+  const wasCounting = practicePlayer.countingIn;
+  practicePlayer.countingIn = false;
+  if (wasCounting) {
+    updatePracticePlayButton();
+    if (document.getElementById("player-status").textContent === "カウントイン中…") {
+      setPracticeStatus("");
+    }
+  }
+  if (release && wasCounting) scheduleAudioRelease(400);
+}
+
+async function playPracticeMedia(media, track) {
+  let pitchApplied = true;
+  try {
+    await applyPracticePitch();
+  } catch (error) {
+    pitchApplied = false;
+    track.pitchSemitones = 0;
+    document.getElementById("player-key").value = "0";
+    setPracticeStatus("キー変更を開始できないため、原曲キーで再生します。", true);
+    saveCurrentPracticeTrack();
+  }
+  await media.play();
+  return pitchApplied;
+}
+
+async function startPracticeCountIn(media, track) {
+  cancelPracticeCountIn(false);
+  const token = ++practicePlayer.startToken;
+  const ctx = await getAudioCtx();
+  let pitchApplied = true;
+  try {
+    await applyPracticePitch();
+  } catch (error) {
+    pitchApplied = false;
+    track.pitchSemitones = 0;
+    document.getElementById("player-key").value = "0";
+    setPracticeStatus("キー変更を開始できないため、原曲キーで再生します。", true);
+    saveCurrentPracticeTrack();
+  }
+
+  // 遅延再生が制限されるモバイル向けに、押下中にmedia要素を一度アンロックする。
+  const unlock = media.play();
+  media.pause();
+  if (unlock && unlock.catch) unlock.catch(() => {});
+  media.currentTime = track.loopStart;
+
+  const bpm = Math.min(240, Math.max(40, Number(track.countInBpm) || 100));
+  const beatDuration = 60 / bpm;
+  const firstBeat = ctx.currentTime + 0.08;
+  const countInGain = ctx.createGain();
+  countInGain.gain.value = 1;
+  countInGain.connect(ctx.destination);
+  practicePlayer.countInGain = countInGain;
+  practicePlayer.countingIn = true;
+  updatePracticePlayButton();
+  if (pitchApplied) setPracticeStatus("カウントイン中…");
+
+  // 2小節: 1小節目は1・3拍、2小節目は1・2・3・4拍。
+  for (const beat of [0, 2, 4, 5, 6, 7]) {
+    const time = firstBeat + beat * beatDuration;
+    DRUM_SOUNDS.hh(ctx, time, 0.7, countInGain);
+    if (beat === 0 || beat === 4 || beat === 6) DRUM_SOUNDS.kick(ctx, time, 0.82, countInGain);
+    else DRUM_SOUNDS.snare(ctx, time, 0.72, countInGain);
+  }
+
+  const delay = Math.max(0, (firstBeat + 8 * beatDuration - ctx.currentTime) * 1000);
+  practicePlayer.countInTimer = setTimeout(async () => {
+    if (token !== practicePlayer.startToken || media !== practicePlayer.media) return;
+    practicePlayer.countInTimer = 0;
+    practicePlayer.countingIn = false;
+    practicePlayer.countInGain = null;
+    try { countInGain.disconnect(); } catch (error) {}
+    try {
+      const appliedAtStart = await playPracticeMedia(media, track);
+      if (pitchApplied && appliedAtStart) setPracticeStatus("");
+    } catch (error) {
+      updatePracticePlayButton();
+      setPracticeStatus("再生を開始できませんでした。もう一度再生ボタンを押してください。", true);
+    }
+  }, delay);
+}
+
 function setPracticeMedia(media) {
   for (const element of [document.getElementById("player-audio"), document.getElementById("player-video")]) {
     element.classList.toggle("active", element === media && element.tagName === "VIDEO");
@@ -2513,14 +2675,23 @@ async function loadPracticeSource(blob, track) {
   track.playbackRate = PLAYER_SPEEDS.reduce((nearest, rate) =>
     Math.abs(rate - requestedRate) < Math.abs(nearest - requestedRate) ? rate : nearest
   );
+  track.pitchSemitones = [-3, -2, -1, 0, 1, 2, 3].includes(Number(track.pitchSemitones))
+    ? Number(track.pitchSemitones) : 0;
+  track.countIn = Boolean(track.countIn);
+  track.countInBpm = Math.round(Math.min(240, Math.max(40, Number(track.countInBpm) || rhythmSettings.bpm || 100)));
   track.lastPracticedAt = Date.now();
   practicePlayer.track = track;
   media.playbackRate = track.playbackRate;
+  media.preservesPitch = true;
   media.currentTime = track.loopStart;
 
   document.getElementById("player-current-heading").textContent = track.name;
   document.getElementById("player-seek").max = String(duration);
   document.getElementById("player-speed").value = String(track.playbackRate);
+  document.getElementById("player-key").value = String(track.pitchSemitones);
+  document.getElementById("player-count-in").checked = track.countIn;
+  document.getElementById("player-count-in-bpm").value = String(track.countInBpm);
+  document.getElementById("player-count-in-bpm").disabled = !track.countIn;
   showPracticePlayerReady(true);
   setPracticeStatus("");
   updatePracticeTimeline();
@@ -2566,6 +2737,9 @@ async function importPracticeFile(file) {
     loopStart: previous ? previous.loopStart : 0,
     loopEnd: previous ? previous.loopEnd : null,
     playbackRate: previous ? previous.playbackRate : 1,
+    pitchSemitones: previous ? previous.pitchSemitones : 0,
+    countIn: previous ? previous.countIn : false,
+    countInBpm: previous ? previous.countInBpm : rhythmSettings.bpm,
     lastPracticedAt: Date.now(),
     stored: false
   };
@@ -2638,12 +2812,13 @@ function updatePracticeTimeline() {
 }
 
 function updatePracticePlayButton() {
-  const playing = practicePlayer.media && !practicePlayer.media.paused;
+  const playing = practicePlayer.countingIn || (practicePlayer.media && !practicePlayer.media.paused);
   document.getElementById("player-icon-play").toggleAttribute("hidden", Boolean(playing));
   document.getElementById("player-icon-pause").toggleAttribute("hidden", !playing);
   const button = document.getElementById("player-toggle");
-  button.setAttribute("aria-label", playing ? "一時停止" : "再生");
-  button.title = playing ? "一時停止" : "再生";
+  const label = practicePlayer.countingIn ? "カウントインを停止" : (playing ? "一時停止" : "再生");
+  button.setAttribute("aria-label", label);
+  button.title = label;
 }
 
 function practiceLoopTick() {
@@ -2663,25 +2838,35 @@ function startPracticeLoopTick() {
 }
 
 function pausePracticePlayer() {
+  cancelPracticeCountIn(false);
   cancelAnimationFrame(practicePlayer.animationFrame);
   practicePlayer.animationFrame = 0;
   if (practicePlayer.media && !practicePlayer.media.paused) practicePlayer.media.pause();
+  if (audioCtx) scheduleAudioRelease(500);
 }
 
 async function togglePracticePlayer() {
   const media = practicePlayer.media;
   const track = practicePlayer.track;
   if (!media || !track) return;
+  if (practicePlayer.countingIn) {
+    cancelPracticeCountIn();
+    return;
+  }
   if (!media.paused) {
     media.pause();
+    if (audioCtx) scheduleAudioRelease(500);
     return;
   }
   if (media.currentTime < track.loopStart || media.currentTime >= track.loopEnd) {
     media.currentTime = track.loopStart;
   }
   try {
-    await media.play();
-    setPracticeStatus("");
+    if (track.countIn) await startPracticeCountIn(media, track);
+    else {
+      const pitchApplied = await playPracticeMedia(media, track);
+      if (pitchApplied) setPracticeStatus("");
+    }
   } catch (error) {
     setPracticeStatus("再生を開始できませんでした。もう一度再生ボタンを押してください。", true);
   }
@@ -2690,6 +2875,7 @@ async function togglePracticePlayer() {
 function restartPracticeLoop() {
   const media = practicePlayer.media;
   if (!media || !practicePlayer.track) return;
+  cancelPracticeCountIn();
   media.currentTime = practicePlayer.track.loopStart;
   updatePracticeTimeline();
 }
@@ -2904,6 +3090,47 @@ function initPracticePlayer() {
     const rate = Number(speed.value);
     if (practicePlayer.media) practicePlayer.media.playbackRate = rate;
     if (practicePlayer.track) practicePlayer.track.playbackRate = rate;
+    saveCurrentPracticeTrack();
+  });
+
+  const key = document.getElementById("player-key");
+  key.addEventListener("change", async () => {
+    if (!practicePlayer.track) return;
+    practicePlayer.track.pitchSemitones = Number(key.value);
+    try {
+      await applyPracticePitch();
+      setPracticeStatus("");
+    } catch (error) {
+      practicePlayer.track.pitchSemitones = 0;
+      key.value = "0";
+      setPracticeStatus("このブラウザではキー変更を利用できません。", true);
+    }
+    saveCurrentPracticeTrack();
+  });
+
+  const countIn = document.getElementById("player-count-in");
+  const countInBpm = document.getElementById("player-count-in-bpm");
+  countIn.addEventListener("change", () => {
+    countInBpm.disabled = !countIn.checked;
+    if (!countIn.checked && practicePlayer.countingIn) {
+      cancelPracticeCountIn();
+      setPracticeStatus("");
+    }
+    if (!practicePlayer.track) return;
+    practicePlayer.track.countIn = countIn.checked;
+    saveCurrentPracticeTrack();
+  });
+  countInBpm.addEventListener("change", () => {
+    const bpm = Math.round(Math.min(240, Math.max(40, Number(countInBpm.value) || 100)));
+    countInBpm.value = String(bpm);
+    if (!practicePlayer.track) return;
+    practicePlayer.track.countInBpm = bpm;
+    saveCurrentPracticeTrack();
+  });
+  countInBpm.addEventListener("input", () => {
+    const bpm = Number(countInBpm.value);
+    if (!practicePlayer.track || !Number.isFinite(bpm) || bpm < 40 || bpm > 240) return;
+    practicePlayer.track.countInBpm = Math.round(bpm);
     saveCurrentPracticeTrack();
   });
 

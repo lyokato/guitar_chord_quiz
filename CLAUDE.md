@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Guitar Practice Tools。単一の `index.html`(HTML/CSS/JS、外部依存なし)で完結するWebアプリ。
-ホーム画面から2つのツールへ遷移する: **コードクイズ**(CHORD QUIZ)と**リズムボックス**(RHYTHM BOX: ドラムパターン付きメトロノーム)。
+ホーム画面から3つのツールへ遷移する: **コードクイズ**(CHORD QUIZ)、**リズムボックス**(RHYTHM BOX: ドラムパターン付きメトロノーム)、**練習用プレイヤー**(PRACTICE PLAYER: ローカル曲の速度変更・区間ループ)。
 
 ## デザインルール(必読)
 
@@ -46,7 +46,7 @@ UIの生成・変更・スタイル調整を行う際は、**必ず先に `DESIG
 - m7♭5にバレーは存在しない(四音構成でのみ出題)。存在しない組み合わせはSHAPESに書かないことで自然に除外される
 - バレーシルエット: form=full のみ。5Lは1〜3弦のR-3フレット位置
 - 度数表示: `DEGREE_LABELS` + h79 の半音+3は「#9」と表示する特例
-- SPA風ルーティング: History API(pushState/popstate)で home/title/settings/game/rhythm を遷移。ブラウザバックでページを離れない。`switchDom` はRHYTHM BOXを離れるとき再生を自動停止する
+- SPA風ルーティング: History API(pushState/popstate)で home/title/settings/game/rhythm/player を遷移。ブラウザバックでページを離れない。`switchDom` はRHYTHM BOXまたは練習用プレイヤーの画面を離れるとき、それぞれの再生を自動停止する
 - サウンド: Web Audio合成。iOS対策として以下3点が必須。削除・簡略化しないこと
   1. 無音`<audio>`の**ループ再生**(unmuteハック)。ループでないと再生終了時にセッションが戻り、マナースイッチON時に消音される(実バグで確認済み)
   2. ユーザー操作内での `await ctx.resume()`
@@ -61,6 +61,16 @@ UIの生成・変更・スタイル調整を行う際は、**必ず先に `DESIG
 - フィルイン: `FILL_PATTERNS`(off=小節末尾からのオフセットで拍子非依存)。overlay型(通常パターンに重ねる控えめ系)と置き換え型(後半を上書き)があり、crash指定時のみ次小節頭にクラッシュ。頻度は`fillEvery`。デフォルトは控えめ(soft)
 - ビートインジケーター: スケジュール時に`beatEvents`へ拍時刻を積み、rAFループで点灯
 - 設定は `rhythmSettings`(localStorage "rhythmSettings")に保存。BPMは再生中でも即反映
+
+## PRACTICE PLAYER のアーキテクチャ
+
+- 再生はネイティブの`<audio>` / `<video playsinline>`を使い、Web Audioのサウンド生成・iOS無音ループとは分離する
+- ファイル入力は20MB以下。Blob URLで再生し、切り替え時に以前のURLを`URL.revokeObjectURL`で解放する
+- 曲データとメタデータはIndexedDB `guitarPracticePlayer`へ保存する。`tracks`は曲名・長さ・A/B・速度・最終利用日時、`files`はBlobを同じIDで保持する。サーバーへのアップロードや元ファイルパスの保存は行わない
+- 履歴は`lastPracticedAt`の降順で最大5曲。曲を再度開くとA/Bと速度を復元する。Blobが欠落したレコードは開く際に履歴から削除する
+- シークバーは曲全体を常に移動できる。A/Bは現在位置から設定し、B設定時はAへ戻る。区間は最低0.25秒。未設定時は曲全体をループする
+- ループ境界は`requestAnimationFrame`で監視し、バックグラウンド等への補助として`timeupdate`でも監視する。画面を離れると一時停止する
+- IndexedDBへ保存できなくても、読み込み済みの曲は現在セッションで操作できる状態を維持し、履歴だけ利用不可として通知する。非対応コーデックはプレイヤーを未選択状態へ戻してエラーを表示する
 
 ## よくある作業レシピ
 

@@ -1,7 +1,7 @@
 {
   "name": "ギター練習ツール",
   "short_name": "ギター練習",
-  "description": "コードポジションクイズとリズムボックス",
+  "description": "コードクイズ、リズムボックス、区間ループ対応の練習用プレイヤー",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

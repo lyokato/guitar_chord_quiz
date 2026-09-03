@@ -26,8 +26,10 @@
     --tone: #26a69a;
     --line: #3a424e;
     --warn: #ffb74d;
+    --danger: #ef5350;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  [hidden] { display: none !important; }
   body {
     background: var(--bg);
     color: var(--text);
@@ -53,6 +55,9 @@
   }
   button:hover { filter: brightness(1.2); }
   button:active { transform: scale(.97); }
+  button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 3px solid var(--accent); outline-offset: 3px;
+  }
   button.primary { background: var(--accent); color: #0b0e12; font-weight: 700; }
   button.big { font-size: 1.25rem; padding: 16px 40px; letter-spacing: .08em; }
   button.ghost { background: transparent; border: 1px solid var(--line); }
@@ -137,6 +142,102 @@
   }
   .chk-group label:has(input[type="radio"]:checked) { border-color: rgba(154, 165, 177, .45); }
 
+  /* ---- PRACTICE PLAYER ---- */
+  .player-stack { display: grid; gap: 18px; }
+  .player-panel { display: grid; gap: 16px; }
+  .player-empty { text-align: center; padding: 24px 16px; }
+  .player-empty p { color: var(--sub); line-height: 1.7; margin-bottom: 18px; }
+  .player-file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .player-file-label {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 52px; padding: 12px 24px; border-radius: 10px;
+    background: var(--accent); color: #0b0e12; font-weight: 700; cursor: pointer;
+  }
+  .player-file-label:hover { filter: brightness(1.15); }
+  .player-file-label:active { transform: scale(.98); }
+  .player-file-input:focus-visible + .player-file-label { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .player-current { min-width: 0; }
+  .player-name { font-size: 1.15rem; font-weight: 700; overflow-wrap: anywhere; }
+  .player-meta { color: var(--sub); font-size: .82rem; margin-top: 4px; }
+  .player-media {
+    display: none; width: 100%; max-height: 320px; border-radius: 10px;
+    background: var(--panel2); object-fit: contain;
+  }
+  .player-media.active { display: block; }
+  .timeline { display: grid; gap: 7px; }
+  .timeline-rail { position: relative; height: 38px; display: flex; align-items: center; }
+  .timeline-track {
+    position: absolute; left: 0; right: 0; height: 8px; border-radius: 999px;
+    background: var(--panel2); border: 1px solid var(--line); overflow: hidden;
+  }
+  .timeline-loop {
+    position: absolute; top: 0; bottom: 0; left: 0; width: 100%;
+    background: var(--accent); opacity: .55;
+  }
+  .timeline-marker {
+    position: absolute; top: 4px; width: 2px; height: 30px;
+    background: var(--accent); transform: translateX(-1px); pointer-events: none;
+  }
+  .timeline-marker::before {
+    content: attr(data-label); position: absolute; top: -2px; left: 50%; transform: translateX(-50%);
+    min-width: 18px; height: 18px; border-radius: 5px; background: var(--accent); color: #0b0e12;
+    font: 700 11px/18px Menlo, Consolas, monospace; text-align: center;
+  }
+  #player-seek {
+    position: relative; z-index: 2; width: 100%; height: 38px; margin: 0;
+    appearance: none; -webkit-appearance: none; background: transparent;
+  }
+  #player-seek::-webkit-slider-runnable-track { height: 8px; background: transparent; }
+  #player-seek::-webkit-slider-thumb {
+    appearance: none; -webkit-appearance: none; width: 18px; height: 18px; margin-top: -5px;
+    border: 2px solid var(--panel); border-radius: 50%; background: var(--text);
+  }
+  #player-seek::-moz-range-track { height: 8px; background: transparent; }
+  #player-seek::-moz-range-progress { height: 8px; background: transparent; }
+  #player-seek::-moz-range-thumb {
+    width: 14px; height: 14px; border: 2px solid var(--panel); border-radius: 50%; background: var(--text);
+  }
+  .timeline-times { display: flex; justify-content: space-between; font: 600 .82rem Menlo, Consolas, monospace; }
+  .timeline-times .current { color: var(--text); }
+  .timeline-times .duration { color: var(--sub); }
+  .player-transport { display: flex; align-items: center; justify-content: center; gap: 14px; }
+  .player-play { width: 76px; height: 76px; background: var(--tone); color: #fff; }
+  .player-skip { width: 52px; height: 52px; color: var(--text); border: 1px solid var(--line); }
+  .loop-controls { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: stretch; }
+  .loop-point {
+    display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px;
+    min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--panel2); text-align: left;
+  }
+  .loop-point .point-label {
+    display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 7px;
+    background: var(--accent); color: #0b0e12; font: 800 .9rem Menlo, Consolas, monospace;
+  }
+  .loop-point .point-copy { min-width: 0; }
+  .loop-point .point-action { display: block; color: var(--sub); font-size: .74rem; }
+  .loop-point .point-time { display: block; font: 700 .92rem Menlo, Consolas, monospace; margin-top: 2px; }
+  .loop-reset { width: 52px; min-height: 52px; padding: 0; border: 1px solid var(--line); border-radius: 50%; }
+  .speed-control { display: grid; grid-template-columns: auto minmax(120px, 1fr) 4.6em; gap: 12px; align-items: center; }
+  .speed-control label { font-weight: 700; }
+  .speed-value { font: 800 1.05rem Menlo, Consolas, monospace; color: var(--accent); text-align: right; }
+  .player-status { min-height: 1.4em; color: var(--sub); font-size: .84rem; line-height: 1.5; }
+  .player-status.error { color: var(--danger); font-weight: 700; }
+  .recent-shell { display: grid; gap: 10px; }
+  .recent-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .recent-head h2 { margin: 0; }
+  .recent-list { display: grid; gap: 8px; }
+  .recent-empty { color: var(--sub); text-align: center; padding: 22px 12px; border-top: 1px solid var(--line); }
+  .recent-row {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: stretch;
+    background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 6px;
+  }
+  .recent-open { min-width: 0; text-align: left; padding: 8px 10px; background: transparent; }
+  .recent-open:hover { background: var(--panel); filter: none; }
+  .recent-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+  .recent-meta { display: block; color: var(--sub); font-size: .75rem; margin-top: 4px; }
+  .recent-delete { width: 44px; height: 44px; padding: 0; border-radius: 50%; color: var(--sub); align-self: center; }
+  .recent-delete:hover { color: var(--danger); }
+
   /* ---- settings ---- */
   /* スティッキー時もボタン位置(上から24px)が変わらないよう、.appの上パディング分を内包する */
   .navbar {
@@ -149,7 +250,7 @@
   .nav-title {
     /* ボタン中心 (上パディング24px + ボタン半径30px) に揃える */
     position: absolute; left: 50%; top: 54px; transform: translate(-50%, -50%);
-    font-size: 1.3rem; font-weight: 700; letter-spacing: .08em;
+    font-size: 1.3rem; font-weight: 700; letter-spacing: .08em; white-space: nowrap;
   }
   .panel { background: var(--panel); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
   .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 8px 0; }
@@ -308,6 +409,11 @@
     .roots-grid { grid-template-columns: repeat(4, 1fr); }
     .group-head { flex-wrap: wrap; }
     button.big { width: 100%; max-width: 320px; }
+    .loop-controls { grid-template-columns: 1fr 1fr; }
+    .loop-reset { grid-column: 1 / -1; justify-self: center; }
+    .speed-control { grid-template-columns: auto 1fr; }
+    .speed-control input { grid-column: 1 / -1; grid-row: 2; }
+    .speed-value { grid-column: 2; grid-row: 1; }
   }
 
   /* ---- スマホ横持ち (高さが低い画面) ---- */
@@ -343,6 +449,7 @@
     <div class="menu">
       <button class="primary big" onclick="showScreen('title')">コードクイズ</button>
       <button class="primary big" onclick="showScreen('rhythm')">リズムボックス</button>
+      <button class="primary big" onclick="showScreen('player')">練習用プレイヤー</button>
     </div>
 
     <!-- ホーム画面追加の案内 (未インストールのスマホのみ表示) -->
@@ -352,6 +459,98 @@
         <button id="btn-install" class="primary" style="display:none" onclick="promptInstall()">ホーム画面に追加</button>
         <button class="small ghost" onclick="dismissInstallHint()">閉じる</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ==== PRACTICE PLAYER ==== -->
+  <div id="screen-player" class="screen">
+    <div class="navbar">
+      <button class="icon-btn nav" onclick="navBack()" aria-label="戻る" title="戻る">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="nav-title">練習用プレイヤー</span>
+    </div>
+
+    <div class="player-stack">
+      <section class="panel player-panel" aria-labelledby="player-current-heading">
+        <div id="player-empty" class="player-empty">
+          <p>端末内の音声・動画を選択すると、この端末に最近5曲まで保存します。</p>
+          <input id="player-file" class="player-file-input" type="file"
+                 accept="audio/*,video/*,.mp3,.m4a,.wav,.aac,.flac,.ogg,.opus,.mp4,.m4v,.mov,.webm">
+          <label class="player-file-label" for="player-file">ファイルを選択</label>
+        </div>
+
+        <div id="player-ready" hidden>
+          <div class="player-current">
+            <h2 id="player-current-heading" class="player-name"></h2>
+            <p id="player-current-meta" class="player-meta"></p>
+          </div>
+
+          <video id="player-video" class="player-media" playsinline preload="metadata"></video>
+          <audio id="player-audio" preload="metadata"></audio>
+
+          <div class="timeline">
+            <div class="timeline-rail">
+              <div class="timeline-track" aria-hidden="true">
+                <div id="player-loop-highlight" class="timeline-loop"></div>
+              </div>
+              <div id="player-marker-a" class="timeline-marker" data-label="A" aria-hidden="true"></div>
+              <div id="player-marker-b" class="timeline-marker" data-label="B" aria-hidden="true"></div>
+              <input id="player-seek" type="range" min="0" max="1" step="0.01" value="0"
+                     aria-label="再生位置">
+            </div>
+            <div class="timeline-times" aria-live="off">
+              <span id="player-current-time" class="current">0:00.0</span>
+              <span id="player-duration" class="duration">0:00.0</span>
+            </div>
+          </div>
+
+          <div class="player-transport">
+            <button class="icon-btn player-skip" type="button" onclick="seekPracticePlayer(-10)" aria-label="10秒戻る" title="10秒戻る">
+              <svg viewBox="0 0 24 24" width="25" height="25"><path d="M8 7H4V3M4.5 7.5A8 8 0 1 1 4 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><text x="8.2" y="15.7" fill="currentColor" font-size="8" font-weight="700">10</text></svg>
+            </button>
+            <button id="player-toggle" class="icon-btn player-play" type="button" onclick="togglePracticePlayer()" aria-label="再生" title="再生">
+              <svg id="player-icon-play" viewBox="0 0 24 24" width="29" height="29"><path d="M8 5v14l12-7z" fill="currentColor"/></svg>
+              <svg id="player-icon-pause" viewBox="0 0 24 24" width="29" height="29" hidden><rect x="6" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/></svg>
+            </button>
+            <button class="icon-btn player-skip" type="button" onclick="seekPracticePlayer(10)" aria-label="10秒進む" title="10秒進む">
+              <svg viewBox="0 0 24 24" width="25" height="25"><path d="M16 7h4V3m-.5 4.5A8 8 0 1 0 20 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><text x="7.7" y="15.7" fill="currentColor" font-size="8" font-weight="700">10</text></svg>
+            </button>
+          </div>
+
+          <div class="loop-controls" aria-label="ループ範囲">
+            <button class="loop-point" type="button" onclick="setPracticeLoopPoint('start')">
+              <span class="point-label">A</span>
+              <span class="point-copy"><span class="point-action">開始点に設定</span><span id="player-loop-a" class="point-time">0:00.0</span></span>
+            </button>
+            <button class="loop-point" type="button" onclick="setPracticeLoopPoint('end')">
+              <span class="point-label">B</span>
+              <span class="point-copy"><span class="point-action">終了点に設定</span><span id="player-loop-b" class="point-time">0:00.0</span></span>
+            </button>
+            <button class="loop-reset" type="button" onclick="resetPracticeLoop()" aria-label="ループ範囲を曲全体に戻す" title="ループ範囲を曲全体に戻す">
+              <svg viewBox="0 0 24 24" width="23" height="23"><path d="M5 8V4m0 0h4M5.6 4.7A8 8 0 1 1 4 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+
+          <div class="speed-control">
+            <label for="player-speed">再生速度</label>
+            <input id="player-speed" type="range" min="0.5" max="1.5" step="0.05" value="1">
+            <output id="player-speed-value" class="speed-value" for="player-speed">1.00×</output>
+          </div>
+
+        </div>
+        <p id="player-status" class="player-status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="panel recent-shell" aria-labelledby="recent-heading">
+        <div class="recent-head">
+          <h2 id="recent-heading">最近の曲</h2>
+          <input id="player-file-more" class="player-file-input" type="file"
+                 accept="audio/*,video/*,.mp3,.m4a,.wav,.aac,.flac,.ogg,.opus,.mp4,.m4v,.mov,.webm">
+          <label class="player-file-label" for="player-file-more">追加</label>
+        </div>
+        <div id="player-recent-list" class="recent-list"></div>
+      </section>
     </div>
   </div>
 
@@ -2069,6 +2268,538 @@ function buildRhythmUI() {
   buildBeatDots();
 }
 
+/* ================= 練習用プレイヤー ================= */
+
+const PLAYER_DB_NAME = "guitarPracticePlayer";
+const PLAYER_DB_VERSION = 1;
+const PLAYER_MAX_FILE_SIZE = 20 * 1024 * 1024;
+const PLAYER_HISTORY_LIMIT = 5;
+const PLAYER_MIN_LOOP = 0.25;
+
+const practicePlayer = {
+  dbPromise: null,
+  media: null,
+  track: null,
+  objectUrl: null,
+  animationFrame: 0,
+  scrubbing: false,
+  loadToken: 0
+};
+
+function openPracticePlayerDb() {
+  if (!practicePlayer.dbPromise) {
+    practicePlayer.dbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open(PLAYER_DB_NAME, PLAYER_DB_VERSION);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains("tracks")) db.createObjectStore("tracks", { keyPath: "id" });
+        if (!db.objectStoreNames.contains("files")) db.createObjectStore("files", { keyPath: "id" });
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error("保存領域を開けませんでした。"));
+      request.onblocked = () => reject(new Error("保存領域の更新がブロックされています。"));
+    });
+  }
+  return practicePlayer.dbPromise;
+}
+
+function playerRequest(request) {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function playerTransactionDone(transaction) {
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error || new Error("保存処理が中断されました。"));
+  });
+}
+
+async function getPracticeTracks() {
+  const db = await openPracticePlayerDb();
+  const transaction = db.transaction("tracks", "readonly");
+  const tracks = await playerRequest(transaction.objectStore("tracks").getAll());
+  return tracks.sort((a, b) => b.lastPracticedAt - a.lastPracticedAt);
+}
+
+async function getPracticeFile(id) {
+  const db = await openPracticePlayerDb();
+  const transaction = db.transaction("files", "readonly");
+  const record = await playerRequest(transaction.objectStore("files").get(id));
+  return record && record.blob;
+}
+
+async function putPracticeTrack(track, blob) {
+  const db = await openPracticePlayerDb();
+  const transaction = db.transaction(["tracks", "files"], "readwrite");
+  transaction.objectStore("tracks").put(track);
+  transaction.objectStore("files").put({ id: track.id, blob });
+  await playerTransactionDone(transaction);
+  await trimPracticeHistory();
+}
+
+async function updatePracticeTrack(track) {
+  if (!track || !track.stored) return;
+  const db = await openPracticePlayerDb();
+  const transaction = db.transaction("tracks", "readwrite");
+  transaction.objectStore("tracks").put({ ...track, stored: undefined });
+  await playerTransactionDone(transaction);
+}
+
+async function deletePracticeTrack(id) {
+  const db = await openPracticePlayerDb();
+  const transaction = db.transaction(["tracks", "files"], "readwrite");
+  transaction.objectStore("tracks").delete(id);
+  transaction.objectStore("files").delete(id);
+  await playerTransactionDone(transaction);
+}
+
+async function trimPracticeHistory() {
+  const tracks = await getPracticeTracks();
+  const extras = tracks.slice(PLAYER_HISTORY_LIMIT);
+  await Promise.all(extras.map(track => deletePracticeTrack(track.id)));
+}
+
+function practiceTrackId(file) {
+  return [file.name, file.size, file.lastModified, file.type || "unknown"].join(":");
+}
+
+function isPracticeVideo(file) {
+  return file.type.startsWith("video/") || /\.(mp4|m4v|mov|webm)$/i.test(file.name);
+}
+
+function formatPlayerTime(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00.0";
+  const tenths = Math.floor(seconds * 10 + 0.0001);
+  const minutes = Math.floor(tenths / 600);
+  const secs = Math.floor((tenths % 600) / 10);
+  return `${minutes}:${String(secs).padStart(2, "0")}.${tenths % 10}`;
+}
+
+function formatPlayerSize(bytes) {
+  return bytes >= 1024 * 1024
+    ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+function setPracticeStatus(message, isError = false) {
+  const status = document.getElementById("player-status");
+  status.textContent = message;
+  status.classList.toggle("error", isError);
+}
+
+function showPracticePlayerReady(ready) {
+  document.getElementById("player-empty").hidden = ready;
+  document.getElementById("player-ready").hidden = !ready;
+}
+
+function clearPracticeSource() {
+  pausePracticePlayer();
+  for (const media of [document.getElementById("player-audio"), document.getElementById("player-video")]) {
+    media.removeAttribute("src");
+    media.classList.remove("active");
+    media.load();
+  }
+  if (practicePlayer.objectUrl) URL.revokeObjectURL(practicePlayer.objectUrl);
+  practicePlayer.objectUrl = null;
+  practicePlayer.media = null;
+  practicePlayer.track = null;
+  showPracticePlayerReady(false);
+  updatePracticePlayButton();
+}
+
+function setPracticeMedia(media) {
+  for (const element of [document.getElementById("player-audio"), document.getElementById("player-video")]) {
+    element.classList.toggle("active", element === media && element.tagName === "VIDEO");
+  }
+  practicePlayer.media = media;
+}
+
+function waitForPracticeMetadata(media, token) {
+  return new Promise((resolve, reject) => {
+    const cleanUp = () => {
+      media.removeEventListener("loadedmetadata", onLoaded);
+      media.removeEventListener("error", onError);
+    };
+    const onLoaded = () => {
+      cleanUp();
+      if (token !== practicePlayer.loadToken) return reject(new Error("読み込みが更新されました。"));
+      if (!Number.isFinite(media.duration) || media.duration <= 0) return reject(new Error("曲の長さを取得できませんでした。"));
+      resolve(media.duration);
+    };
+    const onError = () => {
+      cleanUp();
+      reject(new Error("このファイル形式またはコーデックは、現在のブラウザでは再生できません。"));
+    };
+    media.addEventListener("loadedmetadata", onLoaded, { once: true });
+    media.addEventListener("error", onError, { once: true });
+  });
+}
+
+async function loadPracticeSource(blob, track) {
+  const token = ++practicePlayer.loadToken;
+  pausePracticePlayer();
+  if (practicePlayer.objectUrl) URL.revokeObjectURL(practicePlayer.objectUrl);
+
+  const media = document.getElementById(track.isVideo ? "player-video" : "player-audio");
+  setPracticeMedia(media);
+  practicePlayer.objectUrl = URL.createObjectURL(blob);
+  const metadataReady = waitForPracticeMetadata(media, token);
+  media.src = practicePlayer.objectUrl;
+  media.load();
+
+  const duration = await metadataReady;
+  const hasSavedEnd = track.loopEnd !== null && track.loopEnd !== undefined && Number.isFinite(Number(track.loopEnd));
+  const savedEnd = Number(track.loopEnd);
+  track.duration = duration;
+  track.loopStart = Math.min(Math.max(0, Number(track.loopStart) || 0), Math.max(0, duration - PLAYER_MIN_LOOP));
+  track.loopEnd = hasSavedEnd
+    ? Math.min(Math.max(track.loopStart + PLAYER_MIN_LOOP, savedEnd), duration)
+    : duration;
+  track.playbackRate = Math.min(1.5, Math.max(0.5, Number(track.playbackRate) || 1));
+  track.lastPracticedAt = Date.now();
+  practicePlayer.track = track;
+  media.playbackRate = track.playbackRate;
+  media.currentTime = track.loopStart;
+
+  document.getElementById("player-current-heading").textContent = track.name;
+  document.getElementById("player-current-meta").textContent = `${formatPlayerSize(track.size)} · 端末内だけで使用`;
+  document.getElementById("player-seek").max = String(duration);
+  document.getElementById("player-speed").value = String(track.playbackRate);
+  document.getElementById("player-speed-value").value = `${track.playbackRate.toFixed(2)}×`;
+  showPracticePlayerReady(true);
+  setPracticeStatus("A–B間を繰り返します。シークバーで好きな位置へ移動できます。");
+  updatePracticeTimeline();
+  updatePracticePlayButton();
+
+  if (track.stored) {
+    try {
+      await updatePracticeTrack(track);
+      await renderPracticeHistory();
+    } catch (error) {
+      setPracticeStatus("曲は再生できますが、履歴の更新に失敗しました。", true);
+    }
+  }
+}
+
+async function importPracticeFile(file) {
+  if (!file) return;
+  if (file.size > PLAYER_MAX_FILE_SIZE) {
+    alert("20MB以下の音声・動画ファイルを選んでください。");
+    return;
+  }
+  if (file.size === 0) {
+    alert("空のファイルは読み込めません。");
+    return;
+  }
+
+  setPracticeStatus("ファイルを読み込んでいます…");
+  const id = practiceTrackId(file);
+  let previous = null;
+  try {
+    previous = (await getPracticeTracks()).find(track => track.id === id) || null;
+  } catch (error) {
+    // IndexedDBが使えなくても、選択中のファイルの再生は続ける。
+  }
+  const track = {
+    id,
+    name: file.name,
+    type: file.type,
+    size: file.size,
+    lastModified: file.lastModified,
+    isVideo: isPracticeVideo(file),
+    duration: previous && previous.duration,
+    loopStart: previous ? previous.loopStart : 0,
+    loopEnd: previous ? previous.loopEnd : null,
+    playbackRate: previous ? previous.playbackRate : 1,
+    lastPracticedAt: Date.now(),
+    stored: false
+  };
+
+  try {
+    await loadPracticeSource(file, track);
+  } catch (error) {
+    clearPracticeSource();
+    setPracticeStatus(error.message || "ファイルを読み込めませんでした。", true);
+    return;
+  }
+
+  try {
+    const savedTrack = { ...track, stored: undefined };
+    await putPracticeTrack(savedTrack, file);
+    track.stored = true;
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+    await renderPracticeHistory();
+  } catch (error) {
+    setPracticeStatus("曲は再生できますが、端末の保存領域に履歴を保存できませんでした。", true);
+  }
+}
+
+async function openPracticeTrack(id) {
+  setPracticeStatus("履歴から読み込んでいます…");
+  let loadingStarted = false;
+  try {
+    const [tracks, blob] = await Promise.all([getPracticeTracks(), getPracticeFile(id)]);
+    const track = tracks.find(item => item.id === id);
+    if (!track || !blob) {
+      await deletePracticeTrack(id).catch(() => {});
+      await renderPracticeHistory();
+      setPracticeStatus("保存済みファイルが見つからないため、履歴から削除しました。", true);
+      return;
+    }
+    loadingStarted = true;
+    await loadPracticeSource(blob, { ...track, stored: true });
+  } catch (error) {
+    if (loadingStarted) clearPracticeSource();
+    setPracticeStatus(error.message || "履歴から曲を読み込めませんでした。", true);
+  }
+}
+
+function updatePracticeTimeline() {
+  const media = practicePlayer.media;
+  const track = practicePlayer.track;
+  if (!media || !track) return;
+  const duration = track.duration || media.duration || 0;
+  const current = Math.min(duration, Math.max(0, media.currentTime || 0));
+  const startPercent = duration ? track.loopStart / duration * 100 : 0;
+  const endPercent = duration ? track.loopEnd / duration * 100 : 100;
+  const seek = document.getElementById("player-seek");
+  if (!practicePlayer.scrubbing) seek.value = String(current);
+  document.getElementById("player-current-time").textContent = formatPlayerTime(Number(seek.value));
+  document.getElementById("player-duration").textContent = formatPlayerTime(duration);
+  document.getElementById("player-loop-a").textContent = formatPlayerTime(track.loopStart);
+  document.getElementById("player-loop-b").textContent = formatPlayerTime(track.loopEnd);
+  document.getElementById("player-loop-highlight").style.left = `${startPercent}%`;
+  document.getElementById("player-loop-highlight").style.width = `${Math.max(0, endPercent - startPercent)}%`;
+  document.getElementById("player-marker-a").style.left = `clamp(9px, ${startPercent}%, calc(100% - 9px))`;
+  document.getElementById("player-marker-b").style.left = `clamp(9px, ${endPercent}%, calc(100% - 9px))`;
+}
+
+function updatePracticePlayButton() {
+  const playing = practicePlayer.media && !practicePlayer.media.paused;
+  document.getElementById("player-icon-play").hidden = playing;
+  document.getElementById("player-icon-pause").hidden = !playing;
+  const button = document.getElementById("player-toggle");
+  button.setAttribute("aria-label", playing ? "一時停止" : "再生");
+  button.title = playing ? "一時停止" : "再生";
+}
+
+function practiceLoopTick() {
+  const media = practicePlayer.media;
+  const track = practicePlayer.track;
+  if (!media || !track || media.paused) return;
+  if (!practicePlayer.scrubbing && media.currentTime >= track.loopEnd - 0.025) {
+    media.currentTime = track.loopStart;
+  }
+  updatePracticeTimeline();
+  practicePlayer.animationFrame = requestAnimationFrame(practiceLoopTick);
+}
+
+function startPracticeLoopTick() {
+  cancelAnimationFrame(practicePlayer.animationFrame);
+  practicePlayer.animationFrame = requestAnimationFrame(practiceLoopTick);
+}
+
+function pausePracticePlayer() {
+  cancelAnimationFrame(practicePlayer.animationFrame);
+  practicePlayer.animationFrame = 0;
+  if (practicePlayer.media && !practicePlayer.media.paused) practicePlayer.media.pause();
+}
+
+async function togglePracticePlayer() {
+  const media = practicePlayer.media;
+  const track = practicePlayer.track;
+  if (!media || !track) return;
+  if (!media.paused) {
+    media.pause();
+    return;
+  }
+  if (media.currentTime < track.loopStart || media.currentTime >= track.loopEnd - 0.025) {
+    media.currentTime = track.loopStart;
+  }
+  try {
+    await media.play();
+    setPracticeStatus("A–B間を繰り返しています。");
+  } catch (error) {
+    setPracticeStatus("再生を開始できませんでした。もう一度再生ボタンを押してください。", true);
+  }
+}
+
+function seekPracticePlayer(delta) {
+  const media = practicePlayer.media;
+  if (!media || !practicePlayer.track) return;
+  media.currentTime = Math.min(practicePlayer.track.duration, Math.max(0, media.currentTime + delta));
+  updatePracticeTimeline();
+}
+
+function saveCurrentPracticeTrack() {
+  if (!practicePlayer.track || !practicePlayer.track.stored) return;
+  updatePracticeTrack(practicePlayer.track)
+    .then(renderPracticeHistory)
+    .catch(() => setPracticeStatus("ループ設定を履歴に保存できませんでした。", true));
+}
+
+function setPracticeLoopPoint(point) {
+  const media = practicePlayer.media;
+  const track = practicePlayer.track;
+  if (!media || !track) return;
+  const current = Math.min(track.duration, Math.max(0, media.currentTime));
+  if (point === "start") {
+    if (current > track.loopEnd - PLAYER_MIN_LOOP) {
+      setPracticeStatus("AはBより0.25秒以上前に設定してください。", true);
+      return;
+    }
+    track.loopStart = current;
+    setPracticeStatus(`開始点Aを${formatPlayerTime(current)}に設定しました。`);
+  } else {
+    if (current < track.loopStart + PLAYER_MIN_LOOP) {
+      setPracticeStatus("BはAより0.25秒以上後に設定してください。", true);
+      return;
+    }
+    track.loopEnd = current;
+    media.currentTime = track.loopStart;
+    setPracticeStatus(`終了点Bを${formatPlayerTime(current)}に設定し、Aへ戻りました。`);
+  }
+  updatePracticeTimeline();
+  saveCurrentPracticeTrack();
+}
+
+function resetPracticeLoop() {
+  const media = practicePlayer.media;
+  const track = practicePlayer.track;
+  if (!media || !track) return;
+  track.loopStart = 0;
+  track.loopEnd = track.duration;
+  updatePracticeTimeline();
+  setPracticeStatus("ループ範囲を曲全体に戻しました。");
+  saveCurrentPracticeTrack();
+}
+
+function practiceHistoryMeta(track) {
+  const fullLoop = track.loopStart < 0.05 && Math.abs(track.loopEnd - track.duration) < 0.05;
+  const loop = fullLoop
+    ? "全体ループ"
+    : `A ${formatPlayerTime(track.loopStart)}–${formatPlayerTime(track.loopEnd)}`;
+  return `${formatPlayerTime(track.duration)} · ${loop} · ${Number(track.playbackRate || 1).toFixed(2)}×`;
+}
+
+async function renderPracticeHistory() {
+  const list = document.getElementById("player-recent-list");
+  if (!list) return;
+  list.replaceChildren();
+  let tracks;
+  try {
+    tracks = (await getPracticeTracks()).slice(0, PLAYER_HISTORY_LIMIT);
+  } catch (error) {
+    const empty = document.createElement("p");
+    empty.className = "recent-empty";
+    empty.textContent = "このブラウザでは履歴を利用できません。";
+    list.appendChild(empty);
+    return;
+  }
+  if (!tracks.length) {
+    const empty = document.createElement("p");
+    empty.className = "recent-empty";
+    empty.textContent = "まだ曲がありません";
+    list.appendChild(empty);
+    return;
+  }
+  for (const track of tracks) {
+    const row = document.createElement("div");
+    row.className = "recent-row";
+
+    const open = document.createElement("button");
+    open.className = "recent-open";
+    open.type = "button";
+    open.addEventListener("click", () => openPracticeTrack(track.id));
+    const title = document.createElement("span");
+    title.className = "recent-title";
+    title.textContent = track.name;
+    const meta = document.createElement("span");
+    meta.className = "recent-meta";
+    meta.textContent = practiceHistoryMeta(track);
+    open.append(title, meta);
+
+    const remove = document.createElement("button");
+    remove.className = "recent-delete";
+    remove.type = "button";
+    remove.setAttribute("aria-label", `${track.name}を履歴から削除`);
+    remove.title = "履歴から削除";
+    remove.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 10v7m4-7v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    remove.addEventListener("click", async () => {
+      if (!confirm(`「${track.name}」を履歴から削除しますか？\n端末内の元ファイルは削除されません。`)) return;
+      try {
+        await deletePracticeTrack(track.id);
+        if (practicePlayer.track && practicePlayer.track.id === track.id) practicePlayer.track.stored = false;
+        await renderPracticeHistory();
+        if (practicePlayer.track && practicePlayer.track.id === track.id) {
+          setPracticeStatus("履歴から削除しました。現在の再生はそのまま続けられます。");
+        }
+      } catch (error) {
+        setPracticeStatus("履歴から削除できませんでした。", true);
+      }
+    });
+    row.append(open, remove);
+    list.appendChild(row);
+  }
+}
+
+function initPracticePlayer() {
+  for (const id of ["player-file", "player-file-more"]) {
+    const input = document.getElementById(id);
+    input.addEventListener("change", () => {
+      const file = input.files && input.files[0];
+      input.value = "";
+      importPracticeFile(file);
+    });
+  }
+
+  const seek = document.getElementById("player-seek");
+  seek.addEventListener("input", () => {
+    practicePlayer.scrubbing = true;
+    if (practicePlayer.media) practicePlayer.media.currentTime = Number(seek.value);
+    document.getElementById("player-current-time").textContent = formatPlayerTime(Number(seek.value));
+  });
+  seek.addEventListener("change", () => {
+    practicePlayer.scrubbing = false;
+    updatePracticeTimeline();
+  });
+
+  const speed = document.getElementById("player-speed");
+  speed.addEventListener("input", () => {
+    const rate = Number(speed.value);
+    document.getElementById("player-speed-value").value = `${rate.toFixed(2)}×`;
+    if (practicePlayer.media) practicePlayer.media.playbackRate = rate;
+    if (practicePlayer.track) practicePlayer.track.playbackRate = rate;
+  });
+  speed.addEventListener("change", saveCurrentPracticeTrack);
+
+  for (const media of [document.getElementById("player-audio"), document.getElementById("player-video")]) {
+    media.addEventListener("play", () => {
+      updatePracticePlayButton();
+      startPracticeLoopTick();
+    });
+    media.addEventListener("pause", updatePracticePlayButton);
+    media.addEventListener("timeupdate", () => {
+      if (media !== practicePlayer.media) return;
+      const track = practicePlayer.track;
+      if (track && !practicePlayer.scrubbing && media.currentTime >= track.loopEnd - 0.025) {
+        media.currentTime = track.loopStart;
+      }
+      updatePracticeTimeline();
+    });
+    media.addEventListener("ended", () => {
+      if (!practicePlayer.track || media !== practicePlayer.media) return;
+      media.currentTime = practicePlayer.track.loopStart;
+      media.play().catch(() => {});
+    });
+  }
+  renderPracticeHistory();
+}
+
 /* ================= ゲーム進行 ================= */
 
 const game = {
@@ -2092,8 +2823,10 @@ let appNavDepth = 0;
 
 function switchDom(name) {
   if (name !== "rhythm") stopRhythm(); // RHYTHM BOXを離れたら再生停止
+  if (name !== "player") pausePracticePlayer(); // プレイヤー画面を離れたら曲を一時停止
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById("screen-" + name).classList.add("active");
+  if (name === "player") renderPracticeHistory();
   window.scrollTo(0, 0);
 }
 
@@ -2320,6 +3053,7 @@ loadSettings();
 buildSettingsUI();
 loadRhythmSettings();
 buildRhythmUI();
+initPracticePlayer();
 
 // 初期履歴エントリ (リロード時のハッシュに関わらずホームから開始)
 history.replaceState({ screen: "home", depth: 0 }, "", "#home");
@@ -2348,6 +3082,7 @@ document.addEventListener("visibilitychange", () => {
 });
 window.addEventListener("pagehide", () => {
   stopRhythm();
+  pausePracticePlayer();
   releaseAudioSession();
 });
 </script>

@@ -231,16 +231,19 @@
     background: var(--panel2); color: var(--text); font: 700 .92rem Menlo, Consolas, monospace;
   }
   .player-count-in {
-    display: grid; gap: 7px;
+    display: grid;
+    grid-template-columns: max-content 20px 48px max-content max-content 44px max-content;
+    align-items: center; gap: 4px; min-width: 0; white-space: nowrap;
     color: var(--text); font-size: .88rem; font-weight: 700;
   }
-  .player-count-in-row { display: flex; align-items: center; gap: 9px; min-height: 38px; }
+  .player-count-in-row { display: contents; }
   .player-count-in input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--tone); flex: 0 0 auto; }
   #player-count-in-bpm, #player-count-in-lead {
-    width: 72px; min-height: 38px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px;
+    min-height: 38px; padding: 7px 6px; border: 1px solid var(--line); border-radius: 8px;
     background: var(--panel2); color: var(--text); font: 700 .9rem Menlo, Consolas, monospace; text-align: right;
   }
-  #player-count-in-lead { width: 64px; }
+  #player-count-in-bpm { width: 48px; }
+  #player-count-in-lead { width: 44px; }
   #player-count-in-bpm:disabled, #player-count-in-lead:disabled { opacity: .45; cursor: not-allowed; }
   .player-count-in-unit { color: var(--sub); font: 700 .78rem Menlo, Consolas, monospace; }
   .player-status { color: var(--sub); font-size: .84rem; line-height: 1.5; }

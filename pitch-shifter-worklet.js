@@ -12,7 +12,9 @@ class PracticePitchShifter extends AudioWorkletProcessor {
   constructor() {
     super();
     this.ringLength = 16384;
-    this.windowSamples = Math.min(4096, Math.max(1024, Math.round(sampleRate * 0.06)));
+    // 長めの窓と等パワー寄りのクロスフェードで、粒の切替周期に出る
+    // ビブラート状のピッチ揺れを抑える。
+    this.windowSamples = Math.min(8192, Math.max(2048, Math.round(sampleRate * 0.09)));
     this.buffers = [];
     this.writeIndex = 0;
     this.phaseA = 0;
@@ -65,11 +67,12 @@ class PracticePitchShifter extends AudioWorkletProcessor {
         const delayB = factor > 1
           ? (1 - this.phaseB) * this.windowSamples
           : this.phaseB * this.windowSamples;
-        const weightA = 0.5 - 0.5 * Math.cos(2 * Math.PI * this.phaseA);
-        const weightB = 0.5 - 0.5 * Math.cos(2 * Math.PI * this.phaseB);
+        const weightA = Math.sqrt(0.5 - 0.5 * Math.cos(2 * Math.PI * this.phaseA));
+        const weightB = Math.sqrt(0.5 - 0.5 * Math.cos(2 * Math.PI * this.phaseB));
+        const weightSum = Math.max(0.0001, weightA + weightB);
         const shiftedA = this.read(buffer, this.writeIndex - delayA);
         const shiftedB = this.read(buffer, this.writeIndex - delayB);
-        output[channel][frame] = shiftedA * weightA + shiftedB * weightB;
+        output[channel][frame] = (shiftedA * weightA + shiftedB * weightB) / weightSum;
       }
 
       this.writeIndex = (this.writeIndex + 1) % this.ringLength;

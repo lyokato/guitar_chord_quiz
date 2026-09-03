@@ -1,3 +1,148 @@
+const FFT_SIZE = 2048;
+const HOP_SIZE = 512;
+const HALF_FFT = FFT_SIZE >> 1;
+const OUTPUT_RING_SIZE = FFT_SIZE * 4;
+const TWO_PI = Math.PI * 2;
+const WINDOW_NORMALIZATION = 1.5;
+
+const HANN_WINDOW = new Float32Array(FFT_SIZE);
+for (let i = 0; i < FFT_SIZE; i++) {
+  HANN_WINDOW[i] = 0.5 - 0.5 * Math.cos(TWO_PI * i / FFT_SIZE);
+}
+
+function fft(real, imag, inverse = false) {
+  const size = real.length;
+  for (let i = 1, j = 0; i < size; i++) {
+    let bit = size >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) {
+      [real[i], real[j]] = [real[j], real[i]];
+      [imag[i], imag[j]] = [imag[j], imag[i]];
+    }
+  }
+
+  for (let width = 2; width <= size; width <<= 1) {
+    const angle = (inverse ? TWO_PI : -TWO_PI) / width;
+    const stepReal = Math.cos(angle);
+    const stepImag = Math.sin(angle);
+    const half = width >> 1;
+    for (let offset = 0; offset < size; offset += width) {
+      let twiddleReal = 1;
+      let twiddleImag = 0;
+      for (let k = 0; k < half; k++) {
+        const even = offset + k;
+        const odd = even + half;
+        const oddReal = real[odd] * twiddleReal - imag[odd] * twiddleImag;
+        const oddImag = real[odd] * twiddleImag + imag[odd] * twiddleReal;
+        real[odd] = real[even] - oddReal;
+        imag[odd] = imag[even] - oddImag;
+        real[even] += oddReal;
+        imag[even] += oddImag;
+        const nextReal = twiddleReal * stepReal - twiddleImag * stepImag;
+        twiddleImag = twiddleReal * stepImag + twiddleImag * stepReal;
+        twiddleReal = nextReal;
+      }
+    }
+  }
+
+  if (inverse) {
+    for (let i = 0; i < size; i++) {
+      real[i] /= size;
+      imag[i] /= size;
+    }
+  }
+}
+
+class PhaseVocoderChannel {
+  constructor() {
+    this.inputRing = new Float32Array(FFT_SIZE);
+    this.outputRing = new Float32Array(OUTPUT_RING_SIZE);
+    this.real = new Float64Array(FFT_SIZE);
+    this.imag = new Float64Array(FFT_SIZE);
+    this.lastPhase = new Float64Array(HALF_FFT + 1);
+    this.sumPhase = new Float64Array(HALF_FFT + 1);
+    this.analysisMagnitude = new Float64Array(HALF_FFT + 1);
+    this.analysisBin = new Float64Array(HALF_FFT + 1);
+    this.synthesisMagnitude = new Float64Array(HALF_FFT + 1);
+    this.synthesisFrequencyTotal = new Float64Array(HALF_FFT + 1);
+    this.sampleIndex = 0;
+  }
+
+  processFrame(factor, frameStart) {
+    const { real, imag } = this;
+    for (let i = 0; i < FFT_SIZE; i++) {
+      const sample = this.inputRing[(frameStart + i) % FFT_SIZE];
+      real[i] = sample * HANN_WINDOW[i];
+      imag[i] = 0;
+    }
+    fft(real, imag);
+
+    const expectedAdvance = TWO_PI * HOP_SIZE / FFT_SIZE;
+    for (let bin = 0; bin <= HALF_FFT; bin++) {
+      const magnitude = Math.hypot(real[bin], imag[bin]);
+      const phase = Math.atan2(imag[bin], real[bin]);
+      let deviation = phase - this.lastPhase[bin] - bin * expectedAdvance;
+      this.lastPhase[bin] = phase;
+      deviation -= TWO_PI * Math.round(deviation / TWO_PI);
+      this.analysisMagnitude[bin] = magnitude;
+      this.analysisBin[bin] = bin + deviation / expectedAdvance;
+    }
+
+    this.synthesisMagnitude.fill(0);
+    this.synthesisFrequencyTotal.fill(0);
+    for (let bin = 0; bin <= HALF_FFT; bin++) {
+      const magnitude = this.analysisMagnitude[bin];
+      const targetPosition = bin * factor;
+      const targetLow = Math.floor(targetPosition);
+      const fraction = targetPosition - targetLow;
+      const trueTargetBin = this.analysisBin[bin] * factor;
+      for (const [target, weight] of [[targetLow, 1 - fraction], [targetLow + 1, fraction]]) {
+        if (target > HALF_FFT || weight <= 0) continue;
+        const weightedMagnitude = magnitude * weight;
+        this.synthesisMagnitude[target] += weightedMagnitude;
+        this.synthesisFrequencyTotal[target] += weightedMagnitude * trueTargetBin;
+      }
+    }
+
+    real.fill(0);
+    imag.fill(0);
+    for (let bin = 0; bin <= HALF_FFT; bin++) {
+      const magnitude = this.synthesisMagnitude[bin];
+      const trueBin = magnitude > 1e-12
+        ? this.synthesisFrequencyTotal[bin] / magnitude
+        : bin;
+      this.sumPhase[bin] += trueBin * expectedAdvance;
+      real[bin] = magnitude * Math.cos(this.sumPhase[bin]);
+      imag[bin] = magnitude * Math.sin(this.sumPhase[bin]);
+      if (bin > 0 && bin < HALF_FFT) {
+        real[FFT_SIZE - bin] = real[bin];
+        imag[FFT_SIZE - bin] = -imag[bin];
+      }
+    }
+    fft(real, imag, true);
+
+    const outputStart = frameStart + FFT_SIZE;
+    for (let i = 0; i < FFT_SIZE; i++) {
+      const position = (outputStart + i) % OUTPUT_RING_SIZE;
+      this.outputRing[position] += real[i] * HANN_WINDOW[i] / WINDOW_NORMALIZATION;
+    }
+  }
+
+  processSample(sample, factor) {
+    const index = this.sampleIndex;
+    this.inputRing[index % FFT_SIZE] = sample;
+    if (index >= FFT_SIZE - 1 && (index - (FFT_SIZE - 1)) % HOP_SIZE === 0) {
+      this.processFrame(factor, index - FFT_SIZE + 1);
+    }
+    const outputPosition = index % OUTPUT_RING_SIZE;
+    const output = this.outputRing[outputPosition];
+    this.outputRing[outputPosition] = 0;
+    this.sampleIndex++;
+    return output;
+  }
+}
+
 class PracticePitchShifter extends AudioWorkletProcessor {
   static get parameterDescriptors() {
     return [{
@@ -11,27 +156,11 @@ class PracticePitchShifter extends AudioWorkletProcessor {
 
   constructor() {
     super();
-    this.ringLength = 16384;
-    // 長めの窓と等パワー寄りのクロスフェードで、粒の切替周期に出る
-    // ビブラート状のピッチ揺れを抑える。
-    this.windowSamples = Math.min(8192, Math.max(2048, Math.round(sampleRate * 0.09)));
-    this.buffers = [];
-    this.writeIndex = 0;
-    this.phaseA = 0;
-    this.phaseB = 0.5;
+    this.channels = [];
   }
 
   ensureChannels(count) {
-    while (this.buffers.length < count) this.buffers.push(new Float32Array(this.ringLength));
-  }
-
-  read(buffer, position) {
-    let index = position;
-    while (index < 0) index += this.ringLength;
-    const lower = Math.floor(index) % this.ringLength;
-    const upper = (lower + 1) % this.ringLength;
-    const fraction = index - Math.floor(index);
-    return buffer[lower] + (buffer[upper] - buffer[lower]) * fraction;
+    while (this.channels.length < count) this.channels.push(new PhaseVocoderChannel());
   }
 
   process(inputs, outputs, parameters) {
@@ -46,39 +175,10 @@ class PracticePitchShifter extends AudioWorkletProcessor {
     this.ensureChannels(output.length);
     const semitones = parameters.semitones[0] || 0;
     const factor = Math.pow(2, semitones / 12);
-    const bypass = Math.abs(semitones) < 0.001;
-    const phaseStep = bypass ? 0 : Math.abs(factor - 1) / this.windowSamples;
-
     for (let frame = 0; frame < output[0].length; frame++) {
       for (let channel = 0; channel < output.length; channel++) {
         const source = input[Math.min(channel, input.length - 1)];
-        const sample = source ? source[frame] || 0 : 0;
-        const buffer = this.buffers[channel];
-        buffer[this.writeIndex] = sample;
-
-        if (bypass) {
-          output[channel][frame] = sample;
-          continue;
-        }
-
-        const delayA = factor > 1
-          ? (1 - this.phaseA) * this.windowSamples
-          : this.phaseA * this.windowSamples;
-        const delayB = factor > 1
-          ? (1 - this.phaseB) * this.windowSamples
-          : this.phaseB * this.windowSamples;
-        const weightA = Math.sqrt(0.5 - 0.5 * Math.cos(2 * Math.PI * this.phaseA));
-        const weightB = Math.sqrt(0.5 - 0.5 * Math.cos(2 * Math.PI * this.phaseB));
-        const weightSum = Math.max(0.0001, weightA + weightB);
-        const shiftedA = this.read(buffer, this.writeIndex - delayA);
-        const shiftedB = this.read(buffer, this.writeIndex - delayB);
-        output[channel][frame] = (shiftedA * weightA + shiftedB * weightB) / weightSum;
-      }
-
-      this.writeIndex = (this.writeIndex + 1) % this.ringLength;
-      if (!bypass) {
-        this.phaseA = (this.phaseA + phaseStep) % 1;
-        this.phaseB = (this.phaseB + phaseStep) % 1;
+        output[channel][frame] = this.channels[channel].processSample(source ? source[frame] || 0 : 0, factor);
       }
     }
     return true;

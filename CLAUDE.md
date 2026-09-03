@@ -64,7 +64,7 @@ UIの生成・変更・スタイル調整を行う際は、**必ず先に `DESIG
 
 ## PRACTICE PLAYER のアーキテクチャ
 
-- 再生位置・動画表示はネイティブの`<audio>` / `<video playsinline>`を使う。キー変更時は`MediaElementAudioSourceNode`から`pitch-shifter-worklet.js`の`AudioWorkletNode`へ接続し、速度維持のまま−3〜+3半音を処理する。約90msの遅延窓2本を正規化した等パワー寄りのクロスフェードで重ね、周期的なピッチ揺れを抑える。0半音かつ未接続時はネイティブ出力を維持する
+- 再生位置・動画表示はネイティブの`<audio>` / `<video playsinline>`を使う。キー変更時は`MediaElementAudioSourceNode`から`pitch-shifter-worklet.js`の`AudioWorkletNode`へ接続し、速度維持のまま−3〜+3半音を処理する。2048サンプル・75% overlapの位相ボコーダで周波数成分を移し、周期的な粒の切替を作らない。0半音かつ未接続時はネイティブ出力を維持する
 - ファイル入力は20MB以下。Blob URLで再生し、切り替え時に以前のURLを`URL.revokeObjectURL`で解放する
 - 曲データとメタデータはIndexedDB `guitarPracticePlayer`へ保存する。`tracks`は曲名・長さ・範囲・速度・キー・カウント有無/BPM/lag・最終利用日時、`files`はBlobを同じIDで保持する。サーバーへのアップロードや元ファイルパスの保存は行わない
 - 履歴は`lastPracticedAt`の降順で最大5曲。各行は容量・長さ・ループ範囲・速度を表示し、曲を再度開くと範囲・速度・キー・カウント設定を復元する。現在の曲の見出し下には容量や「端末内」といった補足を表示しない。Blobが欠落したレコードは開く際に履歴から削除する

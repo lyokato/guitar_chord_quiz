@@ -1,7 +1,7 @@
 // Service Worker: ネットワーク優先、失敗時のみキャッシュ (オフライン起動用)
 // オンライン時は常に最新版を取得してキャッシュを更新するため、更新遅延やキャッシュ腐敗が起きない
 
-const CACHE_NAME = "guitar-practice-v7";
+const CACHE_NAME = "guitar-practice-v8";
 const ASSETS = [
   "./",
   "./index.html",

@@ -170,9 +170,11 @@
   }
   .player-media.active { display: block; }
   .timeline { display: grid; gap: 5px; }
-  .timeline-rail { position: relative; height: 46px; display: flex; align-items: center; }
+  .timeline-rail { position: relative; height: 78px; }
+  .timeline-scale { position: absolute; inset: 0 9px; }
   .timeline-track {
-    position: absolute; left: 0; right: 0; height: 8px; border-radius: 999px;
+    position: absolute; left: 0; right: 0; top: 58px; height: 8px; border-radius: 999px;
+    transform: translateY(-50%);
     background: var(--panel2); border: 1px solid var(--line); overflow: hidden;
   }
   .timeline-loop {
@@ -180,35 +182,36 @@
     background: var(--loop); opacity: .9;
   }
   .timeline-marker {
-    position: absolute; z-index: 3; top: 1px; width: 44px; height: 44px; padding: 0;
+    position: absolute; z-index: 3; top: 0; width: 44px; height: 32px; padding: 0;
     border-radius: 9px; background: transparent; color: #0b0e12;
     transform: translateX(-50%); cursor: ew-resize; touch-action: none;
   }
   .timeline-marker:hover { filter: none; }
   .timeline-marker:active { transform: translateX(-50%); }
   .timeline-marker:focus-visible { outline: 3px solid var(--text); outline-offset: 1px; }
-  .timeline-marker::after {
-    content: ""; position: absolute; left: 50%; top: 19px; bottom: 2px;
-    width: 3px; border-radius: 2px; background: var(--loop); transform: translateX(-50%);
+  .timeline-marker::before {
+    content: ""; position: absolute; z-index: 1; top: 2px; left: 50%;
+    width: 16px; height: 14px; border-radius: 5px; background: var(--loop);
+    transform: translateX(-50%);
   }
-  .timeline-marker-label {
-    position: absolute; z-index: 1; top: 0; left: 50%; transform: translateX(-50%);
-    width: 24px; height: 22px; border-radius: 6px; background: var(--loop); color: #0b0e12;
-    font: 800 12px/22px Menlo, Consolas, monospace; text-align: center;
+  .timeline-marker::after {
+    content: ""; position: absolute; left: 50%; top: 14px; width: 3px; height: 53px;
+    border-radius: 2px; background: var(--loop); transform: translateX(-50%); pointer-events: none;
   }
   #player-seek {
-    position: relative; z-index: 2; width: 100%; height: 38px; margin: 0;
+    position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; width: 100%; height: 38px; margin: 0;
     appearance: none; -webkit-appearance: none; background: transparent;
   }
   #player-seek::-webkit-slider-runnable-track { height: 8px; background: transparent; }
   #player-seek::-webkit-slider-thumb {
     appearance: none; -webkit-appearance: none; width: 18px; height: 18px; margin-top: -5px;
-    border: 2px solid var(--panel); border-radius: 50%; background: var(--text);
+    box-sizing: border-box; border: 2px solid var(--panel); border-radius: 50%; background: var(--text);
   }
   #player-seek::-moz-range-track { height: 8px; background: transparent; }
   #player-seek::-moz-range-progress { height: 8px; background: transparent; }
   #player-seek::-moz-range-thumb {
-    width: 14px; height: 14px; border: 2px solid var(--panel); border-radius: 50%; background: var(--text);
+    box-sizing: border-box; width: 18px; height: 18px;
+    border: 2px solid var(--panel); border-radius: 50%; background: var(--text);
   }
   .timeline-times { display: flex; justify-content: space-between; font: 600 .82rem Menlo, Consolas, monospace; }
   .timeline-times .current { color: var(--text); }
@@ -225,8 +228,9 @@
     min-height: 44px; padding: 9px 14px; border: 1px solid var(--line);
     background: var(--panel2); font-size: .85rem; font-weight: 700; white-space: nowrap;
   }
-  .player-restart { width: 52px; height: 52px; color: var(--text); border: 1px solid var(--line); }
-  .player-play { width: 68px; height: 68px; background: var(--tone); color: #fff; }
+  .player-restart, .player-play { width: 52px; height: 52px; }
+  .player-restart { color: var(--text); border: 1px solid var(--line); }
+  .player-play { background: var(--tone); color: #fff; }
   .player-speed-select {
     flex: 0 0 auto; width: 108px; min-height: 44px; padding: 8px 28px 8px 10px;
     border: 1px solid var(--line); border-radius: 9px;
@@ -425,8 +429,7 @@
     .player-controls { min-height: 62px; }
     .player-controls-center { gap: 7px; }
     .player-reset { padding-inline: 11px; }
-    .player-restart { width: 48px; height: 48px; }
-    .player-play { width: 62px; height: 62px; }
+    .player-restart, .player-play { width: 48px; height: 48px; }
     .player-speed-select { padding-inline: 8px 24px; }
   }
 
@@ -435,8 +438,7 @@
     .player-controls { min-height: 52px; }
     .player-controls-center { gap: 4px; }
     .player-reset { padding-inline: 6px; font-size: 13px; }
-    .player-restart { width: 44px; height: 44px; }
-    .player-play { width: 48px; height: 48px; }
+    .player-restart, .player-play { width: 44px; height: 44px; }
     .player-speed-select { width: 78px; padding-inline: 4px 14px; font-size: 13px; }
   }
 
@@ -515,16 +517,14 @@
 
           <div class="timeline">
             <div class="timeline-rail">
-              <div class="timeline-track" aria-hidden="true">
-                <div id="player-loop-highlight" class="timeline-loop"></div>
-              </div>
-              <div id="player-marker-a" class="timeline-marker" role="slider" tabindex="0"
-                   aria-label="ループ開始点A" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
-                <span class="timeline-marker-label" aria-hidden="true">A</span>
-              </div>
-              <div id="player-marker-b" class="timeline-marker" role="slider" tabindex="0"
-                   aria-label="ループ終了点B" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
-                <span class="timeline-marker-label" aria-hidden="true">B</span>
+              <div class="timeline-scale">
+                <div class="timeline-track" aria-hidden="true">
+                  <div id="player-loop-highlight" class="timeline-loop"></div>
+                </div>
+                <div id="player-marker-a" class="timeline-marker" role="slider" tabindex="0"
+                     aria-label="ループ開始位置" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"></div>
+                <div id="player-marker-b" class="timeline-marker" role="slider" tabindex="0"
+                     aria-label="ループ終了位置" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"></div>
               </div>
               <input id="player-seek" type="range" min="0" max="1" step="0.01" value="0"
                      aria-label="再生位置">
@@ -542,8 +542,8 @@
                 <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="5" y="5" width="2.5" height="14" rx="1" fill="currentColor"/><path d="M18 6.5 9 12l9 5.5z" fill="currentColor"/></svg>
               </button>
               <button id="player-toggle" class="icon-btn player-play" type="button" onclick="togglePracticePlayer()" aria-label="再生" title="再生">
-                <svg id="player-icon-play" viewBox="0 0 24 24" width="29" height="29"><path d="M8 5v14l12-7z" fill="currentColor"/></svg>
-                <svg id="player-icon-pause" viewBox="0 0 24 24" width="29" height="29" hidden><rect x="6" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/></svg>
+                <svg id="player-icon-play" viewBox="0 0 24 24" width="26" height="26"><path d="M8 5v14l12-7z" fill="currentColor"/></svg>
+                <svg id="player-icon-pause" viewBox="0 0 24 24" width="26" height="26" hidden><rect x="6" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/></svg>
               </button>
             </div>
             <label class="visually-hidden" for="player-speed">再生速度</label>
@@ -2598,8 +2598,8 @@ function updatePracticeTimeline() {
   document.getElementById("player-duration").textContent = formatPlayerTime(duration);
   document.getElementById("player-loop-highlight").style.left = `${startPercent}%`;
   document.getElementById("player-loop-highlight").style.width = `${Math.max(0, endPercent - startPercent)}%`;
-  document.getElementById("player-marker-a").style.left = `clamp(9px, ${startPercent}%, calc(100% - 9px))`;
-  document.getElementById("player-marker-b").style.left = `clamp(9px, ${endPercent}%, calc(100% - 9px))`;
+  document.getElementById("player-marker-a").style.left = `${startPercent}%`;
+  document.getElementById("player-marker-b").style.left = `${endPercent}%`;
   const markerA = document.getElementById("player-marker-a");
   const markerB = document.getElementById("player-marker-b");
   const minimum = Math.min(PLAYER_MIN_LOOP, duration);
@@ -2625,7 +2625,7 @@ function practiceLoopTick() {
   const media = practicePlayer.media;
   const track = practicePlayer.track;
   if (!media || !track || media.paused) return;
-  if (!practicePlayer.scrubbing && media.currentTime >= track.loopEnd - 0.025) {
+  if (!practicePlayer.scrubbing && media.currentTime >= track.loopEnd) {
     media.currentTime = track.loopStart;
   }
   updatePracticeTimeline();
@@ -2651,7 +2651,7 @@ async function togglePracticePlayer() {
     media.pause();
     return;
   }
-  if (media.currentTime < track.loopStart || media.currentTime >= track.loopEnd - 0.025) {
+  if (media.currentTime < track.loopStart || media.currentTime >= track.loopEnd) {
     media.currentTime = track.loopStart;
   }
   try {
@@ -2703,10 +2703,9 @@ function commitPracticeLoopBoundary() {
 function practiceBoundaryFromDrag(point, startValue, startX, clientX) {
   const track = practicePlayer.track;
   if (!track) return;
-  const rail = document.querySelector(".timeline-rail");
-  const rect = rail.getBoundingClientRect();
-  const inset = 9;
-  const delta = (clientX - startX) / Math.max(1, rect.width - inset * 2) * track.duration;
+  const scale = document.querySelector(".timeline-scale");
+  const rect = scale.getBoundingClientRect();
+  const delta = (clientX - startX) / Math.max(1, rect.width) * track.duration;
   setPracticeLoopBoundary(point, startValue + delta);
 }
 
@@ -2772,7 +2771,7 @@ function practiceHistoryMeta(track) {
   const fullLoop = track.loopStart < 0.05 && Math.abs(track.loopEnd - track.duration) < 0.05;
   const loop = fullLoop
     ? "全体ループ"
-    : `A ${formatPlayerTime(track.loopStart)}–${formatPlayerTime(track.loopEnd)}`;
+    : `${formatPlayerTime(track.loopStart)}–${formatPlayerTime(track.loopEnd)}`;
   return `${formatPlayerTime(track.duration)} · ${loop} · ${Number(track.playbackRate || 1).toFixed(2)}×`;
 }
 
@@ -2879,7 +2878,7 @@ function initPracticePlayer() {
     media.addEventListener("timeupdate", () => {
       if (media !== practicePlayer.media) return;
       const track = practicePlayer.track;
-      if (track && !practicePlayer.scrubbing && media.currentTime >= track.loopEnd - 0.025) {
+      if (track && !practicePlayer.scrubbing && media.currentTime >= track.loopEnd) {
         media.currentTime = track.loopStart;
       }
       updatePracticeTimeline();
@@ -3164,6 +3163,7 @@ for (const id of ["game-board", "preview-board"]) {
 }
 window.addEventListener("resize", () => {
   for (const id of ["game-board", "preview-board"]) updateEdgeFades(document.getElementById(id));
+  updatePracticeTimeline();
 });
 
 // バックグラウンドへ回ったら再生を止め、オーディオセッションを即座に手放す

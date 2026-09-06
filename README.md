@@ -50,6 +50,7 @@
 
 ## 開発
 
-- アプリ本体は `index.html`、キー変更の音声処理は `pitch-shifter-worklet.js`。外部依存なし
+- アプリ本体は `index.html`、キー変更の音声処理は `pitch-shifter-worklet.js`。外部依存・ビルド不要。方式と検証方法は [tests/README.md](tests/README.md) を参照
+- 回帰テスト: `node --test tests/*.test.mjs`。44.1kHz／48kHz・全キーの短時間音程、ステレオ、シーク、再生経路を検証する
 - UIデザインの要求定義は [DESIGN.md](DESIGN.md)、データモデル・出題ルール等の仕様とAIエージェント向け作業ガイドは [CLAUDE.md](CLAUDE.md) を参照
 - `main` に push すると GitHub Pages に自動反映される(リポジトリの Actions タブで確認)

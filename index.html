@@ -2363,6 +2363,7 @@ const practicePlayer = {
   scrubbing: false,
   loadToken: 0,
   pitchWorkletPromise: null,
+  pitchPipelinePromises: new Map(),
   mediaPipelines: new Map(),
   countingIn: false,
   countInTimer: 0,
@@ -2497,45 +2498,111 @@ function clearPracticeSource() {
 }
 
 async function ensurePracticePitchPipeline(media) {
-  let pipeline = practicePlayer.mediaPipelines.get(media);
-  if (pipeline) return pipeline;
-  const ctx = await getAudioCtx();
-  if (!ctx.audioWorklet || typeof AudioWorkletNode === "undefined") {
-    throw new Error("このブラウザではキー変更を利用できません。");
-  }
-  if (!practicePlayer.pitchWorkletPromise) {
-    practicePlayer.pitchWorkletPromise = ctx.audioWorklet.addModule("./pitch-shifter-worklet.js")
-      .catch(error => {
-        practicePlayer.pitchWorkletPromise = null;
-        throw error;
-      });
-  }
-  await practicePlayer.pitchWorkletPromise;
-  const source = ctx.createMediaElementSource(media);
+  const existing = practicePlayer.mediaPipelines.get(media);
+  if (existing) return existing;
+  if (practicePlayer.pitchPipelinePromises.has(media)) return practicePlayer.pitchPipelinePromises.get(media);
+  // A media element can have only one source node, including during concurrent
+  // key changes/play requests. Do not reroute it until the processor is fully ready.
+  const pending = (async () => {
+    const ctx = await getAudioCtx();
+    if (!ctx.audioWorklet || typeof AudioWorkletNode === "undefined") {
+      throw new Error("このブラウザではキー変更を利用できません。");
+    }
+    if (!practicePlayer.pitchWorkletPromise) {
+      practicePlayer.pitchWorkletPromise = ctx.audioWorklet.addModule("./pitch-shifter-worklet.js")
+        .catch(error => {
+          practicePlayer.pitchWorkletPromise = null;
+          throw error;
+        });
+    }
+    await practicePlayer.pitchWorkletPromise;
+    const shifter = new AudioWorkletNode(ctx, "practice-pitch-shifter", {
+      numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2],
+      channelCount: 2, channelCountMode: "explicit"
+    });
+    try {
+      const latency = await waitForPracticePitchReady(shifter);
+      const source = ctx.createMediaElementSource(media);
+      const pipeline = { source, shifter, shifted: false, latency };
+      source.connect(ctx.destination);
+      practicePlayer.mediaPipelines.set(media, pipeline);
+      shifter.onprocessorerror = () => {
+        routePracticePitch(pipeline, false);
+        shifter.disconnect();
+        shifter.port.close();
+        pipeline.shifter = null;
+        if (practicePlayer.media !== media || !practicePlayer.track) return;
+        practicePlayer.track.pitchSemitones = 0;
+        document.getElementById("player-key").value = "0";
+        setPracticeStatus("キー変更が停止したため、原曲キーで再生します。", true);
+        saveCurrentPracticeTrack();
+      };
+      return pipeline;
+    } catch (error) {
+      shifter.disconnect();
+      shifter.port.close();
+      throw error;
+    }
+  })();
+  practicePlayer.pitchPipelinePromises.set(media, pending);
   try {
-    const shifter = new AudioWorkletNode(ctx, "practice-pitch-shifter");
-    source.connect(shifter).connect(ctx.destination);
-    pipeline = { source, shifter };
-  } catch (error) {
-    source.connect(ctx.destination);
-    pipeline = { source, shifter: null };
-    practicePlayer.mediaPipelines.set(media, pipeline);
-    throw error;
+    return await pending;
+  } finally {
+    practicePlayer.pitchPipelinePromises.delete(media);
   }
-  practicePlayer.mediaPipelines.set(media, pipeline);
-  return pipeline;
+}
+
+function waitForPracticePitchReady(shifter) {
+  return new Promise((resolve, reject) => {
+    const finish = (error, latency) => {
+      clearTimeout(timer);
+      shifter.port.onmessage = null;
+      shifter.onprocessorerror = null;
+      if (error) reject(error);
+      else resolve(latency);
+    };
+    const timer = setTimeout(() => finish(new Error("音声処理の準備がタイムアウトしました。")), 10000);
+    shifter.onprocessorerror = () => finish(new Error("音声処理を初期化できませんでした。"));
+    shifter.port.onmessage = event => {
+      if (event.data.type === "ready") finish(null, event.data.latency);
+      else if (event.data.type === "error") finish(new Error("音声処理を初期化できませんでした。"));
+    };
+  });
+}
+
+function resetPracticePitch(media) {
+  const pipeline = practicePlayer.mediaPipelines.get(media);
+  if (pipeline && pipeline.shifter) pipeline.shifter.port.postMessage({ type: "reset" });
+}
+
+function routePracticePitch(pipeline, shifted) {
+  if (pipeline.shifted === shifted) return;
+  pipeline.source.disconnect();
+  if (pipeline.shifter) pipeline.shifter.disconnect();
+  if (shifted) {
+    pipeline.shifter.port.postMessage({ type: "reset" });
+    pipeline.source.connect(pipeline.shifter).connect(audioCtx.destination);
+  } else {
+    pipeline.source.connect(audioCtx.destination);
+  }
+  pipeline.shifted = shifted;
 }
 
 async function applyPracticePitch() {
   const media = practicePlayer.media;
   const track = practicePlayer.track;
   if (!media || !track) return;
-  const semitones = Number(track.pitchSemitones) || 0;
   const existing = practicePlayer.mediaPipelines.get(media);
-  if (!existing && semitones === 0) return;
+  if (!existing && !practicePlayer.pitchPipelinePromises.has(media) && !track.pitchSemitones) return;
+  // The shared context is suspended after pause/background. Existing pipelines
+  // must resume it too, including when the selected key is zero.
+  await getAudioCtx();
   const pipeline = existing || await ensurePracticePitchPipeline(media);
-  if (!pipeline.shifter) throw new Error("このブラウザではキー変更を利用できません。");
-  pipeline.shifter.parameters.get("semitones").setValueAtTime(semitones, audioCtx.currentTime);
+  if (media !== practicePlayer.media || track !== practicePlayer.track) return;
+  const semitones = Number(track.pitchSemitones) || 0;
+  if (semitones !== 0 && !pipeline.shifter) throw new Error("このブラウザではキー変更を利用できません。");
+  if (pipeline.shifter) pipeline.shifter.parameters.get("semitones").setValueAtTime(semitones, audioCtx.currentTime);
+  routePracticePitch(pipeline, semitones !== 0);
 }
 
 function cancelPracticeCountIn(release = true) {
@@ -2632,7 +2699,9 @@ async function startPracticeCountIn(media, track) {
     else DRUM_SOUNDS.snare(ctx, time, 0.72, countInGain);
   }
 
-  const playbackDelay = Math.max(0, (songStart - leadSeconds - ctx.currentTime) * 1000);
+  const pipeline = practicePlayer.mediaPipelines.get(media);
+  const pitchLatency = pipeline && pipeline.shifted ? pipeline.latency : 0;
+  const playbackDelay = Math.max(0, (songStart - leadSeconds - pitchLatency - ctx.currentTime) * 1000);
   practicePlayer.countInTimer = setTimeout(async () => {
     if (token !== practicePlayer.startToken || media !== practicePlayer.media) return;
     practicePlayer.countInTimer = 0;
@@ -3189,6 +3258,10 @@ function initPracticePlayer() {
   initPracticeLoopMarker(document.getElementById("player-marker-b"), "end");
 
   for (const media of [document.getElementById("player-audio"), document.getElementById("player-video")]) {
+    // A discontinuous source must not inherit the previous notes' DSP history.
+    for (const event of ["seeking", "emptied", "pause", "playing"]) {
+      media.addEventListener(event, () => resetPracticePitch(media));
+    }
     media.addEventListener("play", () => {
       updatePracticePlayButton();
       startPracticeLoopTick();

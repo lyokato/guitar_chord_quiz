@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guitar Practice Tools。単一の `index.html`(HTML/CSS/JS、外部依存なし)で完結するWebアプリ。
+Guitar Practice Tools。`index.html`(HTML/CSS/JS)を本体とするWebアプリ。音声処理のみAudioWorkletを使い、外部依存・ビルドは不要。
 ホーム画面から3つのツールへ遷移する: **コードクイズ**(CHORD QUIZ)、**リズムボックス**(RHYTHM BOX: ドラムパターン付きメトロノーム)、**練習用プレイヤー**(PRACTICE PLAYER: ローカル曲の速度変更・区間ループ)。
 
 ## デザインルール(必読)
@@ -12,6 +12,8 @@ UIの生成・変更・スタイル調整を行う際は、**必ず先に `DESIG
 ## ファイル構成
 
 - `index.html` — アプリ本体(すべてここ)。単一ファイル構成を維持する。CSS/JSを別ファイルに分割しない
+- `pitch-shifter-worklet.js` — キー変更のAudioWorklet。音声スレッド要件による単一ファイル構成の例外。方式・検証方法はtests内のREADMEを参照
+- `tests/` — Node.js組み込みテストによる音程・ステレオ・再生経路の回帰検証
 - `manifest.webmanifest` / `icon-*.png` / `apple-touch-icon.png` / `sw.js` — PWA用(ホーム画面追加・standalone起動・オフライン起動)。PWA要件でファイル必須のため単一ファイル構成の例外。sw.jsはネットワーク優先・失敗時キャッシュ方式
 - `DESIGN.md` — UIデザインシステム(AI向けデザイン要求定義)
 - `README.md` — 人間向け概要
@@ -64,7 +66,7 @@ UIの生成・変更・スタイル調整を行う際は、**必ず先に `DESIG
 
 ## PRACTICE PLAYER のアーキテクチャ
 
-- 再生位置・動画表示はネイティブの`<audio>` / `<video playsinline>`を使う。キー変更時は`MediaElementAudioSourceNode`から`pitch-shifter-worklet.js`の`AudioWorkletNode`へ接続し、速度維持のまま−3〜+3半音を処理する。2048サンプル・75% overlapの位相ボコーダで周波数成分を移し、周期的な粒の切替を作らない。0半音かつ未接続時はネイティブ出力を維持する
+- 再生位置・動画表示はネイティブの`<audio>` / `<video playsinline>`を使う。キー変更時は`MediaElementAudioSourceNode`から`pitch-shifter-worklet.js`の`AudioWorkletNode`へ接続し、速度維持のまま−3〜+3半音を処理する。8192サンプルのFFT・512サンプル間隔で各スペクトルピークの実周波数を推定し、周辺の複素スペクトルを位相関係ごと移す。無関係な音の周波数を合成先で平均しない。左右には共通の領域・位相補正を使う。4段階に分割して1コールバックにFFT処理が集中するのを防ぐ。レンダー中にJSの配列・ビューを生成しない。0半音は変換器を通さず原音へ接続する
 - ファイル入力は20MB以下。Blob URLで再生し、切り替え時に以前のURLを`URL.revokeObjectURL`で解放する
 - 曲データとメタデータはIndexedDB `guitarPracticePlayer`へ保存する。`tracks`は曲名・長さ・範囲・速度・キー・カウント有無/BPM/lag・最終利用日時、`files`はBlobを同じIDで保持する。サーバーへのアップロードや元ファイルパスの保存は行わない
 - 履歴は`lastPracticedAt`の降順で最大5曲。各行は容量・長さ・ループ範囲・速度を表示し、曲を再度開くと範囲・速度・キー・カウント設定を復元する。現在の曲の見出し下には容量や「端末内」といった補足を表示しない。Blobが欠落したレコードは開く際に履歴から削除する
@@ -75,7 +77,8 @@ UIの生成・変更・スタイル調整を行う際は、**必ず先に `DESIG
 - BPM欄は`type="text"` + `inputmode="numeric"` + 数字patternでモバイルの数値キーボードを要求し、`input`時にも数字以外を除去する。40〜240への確定時補正と曲ごとの自動保存は維持する
 - ループ境界は`requestAnimationFrame`で監視し、バックグラウンド等への補助として`timeupdate`でも監視する。画面を離れると一時停止する
 - IndexedDBへ保存できなくても、読み込み済みの曲は現在セッションで操作できる状態を維持し、履歴だけ利用不可として通知する。非対応コーデックはプレイヤーを未選択状態へ戻してエラーを表示する
-- `pitch-shifter-worklet.js`はService Workerの必須キャッシュ対象。AudioWorkletを使えない環境や初期化失敗時はキーを0へ戻し、原曲キーでの再生を継続する
+- `pitch-shifter-worklet.js`はService Workerの必須キャッシュ対象。プロセッサーのready通知を待ってからメディアを接続し、並行初期化はメディアごとに1本へ集約する。AudioWorkletの初期化失敗または実行時エラーはキーを0へ戻して原音へ接続する。既存の接続でも再生時にはAudioContextをresumeする
+- シーク・音源変更・pause・playingでDSPの履歴をresetし、前の音を持ち越さない。変換の遅延は8704サンプル（48kHzで約181ms、44.1kHzで約197ms）で、カウント開始時に報告された遅延分だけメディア再生を早める。キー・速度操作による遷移と実機の音質は聴感確認も必要
 
 ## よくある作業レシピ
 
@@ -85,6 +88,8 @@ UIの生成・変更・スタイル調整を行う際は、**必ず先に `DESIG
 - **ローコード/オンコード追加**: `LOW_CHORDS` / `ON_CHORDS` に追記(オンコードは5弦/6弦の片方のみ使用ルールを守る)
 
 ## 検証(変更後は必ず実行)
+
+`node --test tests/*.test.mjs`で音声処理・再生経路を検証する。音程は曲全体の平均ではなく100msの窓を10msずつ動かして測り、一時的なずれを検出する。
 
 構成音の誤りは人間のレビューでは見つけにくい。ボイシングを触ったら必ず機械検証する:
 
